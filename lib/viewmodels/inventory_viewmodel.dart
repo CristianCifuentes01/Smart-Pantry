@@ -29,6 +29,7 @@ class InventoryViewModel extends ChangeNotifier {
       ),
     ];
 
+
     _isLoading = false;
     notifyListeners(); // Avisa a la UI que ya hay datos
   }

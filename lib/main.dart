@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:firebase_core/firebase_core.dart';
+
 import 'viewmodels/inventory_viewmodel.dart';
-import 'views/home/home_screen.dart';
-import 'views/scanner/scanner_view.dart';
-// import 'package:firebase_core/firebase_core.dart'; // Descomentar cuando configures Firebase
+import 'views/home/home_view.dart';
+// Puedes dejar las demás importaciones si las necesitas en el futuro,
+// pero limpié las que ya no se usan directamente aquí.
 
 void main() async {
+  // Asegura que Flutter esté listo antes de arrancar Firebase
   WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp(); // Descomentar cuando configures Firebase
+  await Firebase.initializeApp();
 
   runApp(const MyApp());
 }
@@ -20,41 +23,12 @@ class MyApp extends StatelessWidget {
     return MultiProvider(
       providers: [ChangeNotifierProvider(create: (_) => InventoryViewModel())],
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         title: 'SmartPantry',
         theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true),
-        home: Builder(
-          builder: (context) => Scaffold(
-            appBar: AppBar(
-              title: const Text(
-                'SmartPantry',
-                style: TextStyle(fontWeight: FontWeight.bold),
-              ),
-              centerTitle: true,
-              backgroundColor: const Color.fromARGB(255, 4, 89, 100),
-            ),
-            body: Center(
-              child: ElevatedButton.icon(
-                icon: const Icon(Icons.camera_alt),
-                label: const Text('Escanear Producto'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 30,
-                    vertical: 15,
-                  ),
-                ),
-                onPressed: () {
-                  // Navegar a la pantalla del escáner
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const ScannerView(),
-                    ),
-                  );
-                },
-              ),
-            ),
-          ),
-        ),
+        // EL CAMBIO ESTÁ AQUÍ:
+        // Borramos todo el bloque de 'home: Builder(...)' y lo reemplazamos por:
+        home: const HomeView(),
       ),
     );
   }

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../data/services/api_service.dart';
+import '../../data/repositories/inventory_repository.dart';
+import '../../data/models/product_model.dart';
 
 class ScannerView extends StatefulWidget {
   const ScannerView({super.key});
@@ -35,22 +37,18 @@ class _ScannerViewState extends State<ScannerView> {
   }
 
   void _onCodeDetected(String code) async {
-    setState(() => _isScanning = false); // Pausar escáner
+    setState(() => _isScanning = false);
 
-    // Mostrar mensaje de carga
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(const SnackBar(content: Text('Buscando producto...')));
 
-    // Llamar a la API [cite: 104]
     final product = await _apiService.getProduct(code);
+    if (!mounted) return;
 
-    if (!mounted) return; // Seguridad de Flutter
-
-    // Mostrar resultado
     showDialog(
       context: context,
-      barrierDismissible: false, // Obliga a usar el botón para cerrar
+      barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         title: Text(product != null ? '¡Encontrado!' : 'No encontrado'),
         content: Column(
@@ -76,10 +74,55 @@ class _ScannerViewState extends State<ScannerView> {
           TextButton(
             onPressed: () {
               Navigator.pop(ctx);
-              setState(() => _isScanning = true); // Reactivar escáner
+              setState(() => _isScanning = true);
             },
-            child: const Text('Seguir Escaneando'),
+            child: const Text('Cancelar'),
           ),
+          if (product != null)
+            ElevatedButton(
+              onPressed: () async {
+                // 1. Mostrar el calendario nativo
+                final DateTime? pickedDate = await showDatePicker(
+                  context: context,
+                  initialDate: DateTime.now().add(
+                    const Duration(days: 7),
+                  ), // Por defecto 1 semana
+                  firstDate: DateTime.now(),
+                  lastDate: DateTime.now().add(
+                    const Duration(days: 1825),
+                  ), // Hasta 5 años
+                );
+
+                if (pickedDate != null) {
+                  // 2. Crear el modelo
+                  final newProduct = ProductModel(
+                    id: '', // ID temporal, Firestore generará uno nuevo
+                    barcode: code,
+                    name: product!['name'],
+                    imageUrl: product['image'],
+                    entryDate: DateTime.now(),
+                    expiryDate: pickedDate,
+                  );
+
+                  // 3. Guardar en Firebase
+                  try {
+                    await InventoryRepository().addProduct(newProduct);
+                    if (mounted) {
+                      Navigator.pop(ctx); // Cierra el diálogo
+                      Navigator.pop(context); // Vuelve a la pantalla principal
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('¡Producto guardado en la despensa!'),
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    print("Error: $e");
+                  }
+                }
+              },
+              child: const Text('Asignar Fecha y Guardar'),
+            ),
         ],
       ),
     );
