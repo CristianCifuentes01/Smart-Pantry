@@ -1,27 +1,31 @@
 class ProductModel {
   String? id;
+  String? userId;
   final String barcode;
   final String name;
   final String imageUrl;
-  final DateTime entryDate;
+  final DateTime entryDate; // NUEVO: Fecha de registro
   final DateTime expiryDate;
 
   ProductModel({
     this.id,
+    this.userId,
     required this.barcode,
     required this.name,
     required this.imageUrl,
-    required this.entryDate,
+    required this.entryDate, // NUEVO: Lo pedimos en el constructor
     required this.expiryDate,
   });
 
   // Para enviar a Firebase
   Map<String, dynamic> toMap() {
     return {
+      'userId': userId,
       'barcode': barcode,
       'name': name,
       'imageUrl': imageUrl,
-      'entryDate': entryDate.toIso8601String(),
+      'entryDate': entryDate
+          .toIso8601String(), // NUEVO: Lo preparamos para la nube
       'expiryDate': expiryDate.toIso8601String(),
     };
   }
@@ -30,11 +34,14 @@ class ProductModel {
   factory ProductModel.fromMap(Map<String, dynamic> map, String documentId) {
     return ProductModel(
       id: documentId,
+      userId: map['userId'],
       barcode: map['barcode'] ?? '',
       name: map['name'] ?? 'Desconocido',
       imageUrl: map['imageUrl'] ?? '',
-      entryDate: map['entryDate'] != null 
-          ? DateTime.parse(map['entryDate']) 
+      // NUEVO: Lo leemos de Firebase. Le ponemos una validación por si
+      // lee un producto viejo que guardamos ayer y no tenía esta fecha.
+      entryDate: map['entryDate'] != null
+          ? DateTime.parse(map['entryDate'])
           : DateTime.now(),
       expiryDate: DateTime.parse(map['expiryDate']),
     );

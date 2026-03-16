@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart'; // NUEVO: Importamos Auth
 import '../models/product_model.dart';
 
 class InventoryRepository {
@@ -6,9 +7,17 @@ class InventoryRepository {
     'pantry_items',
   );
 
-  // Método addProduct(): Guardar el objeto en Firestore
+  // NUEVO: Instancia para saber quién está conectado
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+
   Future<void> addProduct(ProductModel product) async {
     try {
+      final User? user = _auth.currentUser;
+      if (user == null) throw Exception("No hay usuario autenticado");
+
+      // Antes de guardar, le inyectamos el ID del usuario al producto
+      product.userId = user.uid;
+
       await _collection.add(product.toMap());
       print("Producto guardado exitosamente");
     } catch (e) {
@@ -17,12 +26,22 @@ class InventoryRepository {
     }
   }
 
-  // Método getProducts(): Leer la lista en tiempo real
   Stream<List<ProductModel>> getProducts() {
-    return _collection.snapshots().map((snapshot) {
-      return snapshot.docs.map((doc) {
-        return ProductModel.fromMap(doc.data() as Map<String, dynamic>, doc.id);
-      }).toList();
-    });
+    final User? user = _auth.currentUser;
+    // Si no hay sesión, devolvemos una lista vacía para que no colapse
+    if (user == null) return const Stream.empty();
+
+    // NUEVO: Agregamos un filtro (.where) a la consulta de Firebase
+    return _collection
+        .where('userId', isEqualTo: user.uid) // Solo trae MIS productos
+        .snapshots()
+        .map((snapshot) {
+          return snapshot.docs.map((doc) {
+            return ProductModel.fromMap(
+              doc.data() as Map<String, dynamic>,
+              doc.id,
+            );
+          }).toList();
+        });
   }
 }

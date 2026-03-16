@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../data/models/product_model.dart';
+import '../data/repositories/inventory_repository.dart';
 
 class InventoryViewModel extends ChangeNotifier {
+  final InventoryRepository _repository = InventoryRepository();
+
   // Lista de productos (Estado)
   List<ProductModel> _products = [];
   bool _isLoading = false;
@@ -10,28 +13,21 @@ class InventoryViewModel extends ChangeNotifier {
   List<ProductModel> get products => _products;
   bool get isLoading => _isLoading;
 
-  // Lógica: Simulación de carga (Luego conectaremos Firebase aquí)
+  // Lógica: Carga real desde Firebase
   Future<void> loadProducts() async {
+    if (_isLoading) return;
     _isLoading = true;
     notifyListeners(); // Avisa a la UI que muestre el spinner de carga
 
-    await Future.delayed(Duration(seconds: 2)); // Simula espera de red
-
-    // Datos de prueba
-    _products = [
-      ProductModel(
-        id: '1',
-        barcode: '770123',
-        name: 'Leche Deslactosada',
-        imageUrl: 'https://world.openfoodfacts.org/images/products/generic.jpg',
-        entryDate: DateTime.now(),
-        expiryDate: DateTime.now().add(Duration(days: 3)), // Vence en 3 días
-      ),
-    ];
-
-
-    _isLoading = false;
-    notifyListeners(); // Avisa a la UI que ya hay datos
+    _repository.getProducts().listen((productsList) {
+      _products = productsList;
+      _isLoading = false;
+      notifyListeners(); // Avisa a la UI que ya hay datos
+    }, onError: (error) {
+      print("Error cargando productos: $error");
+      _isLoading = false;
+      notifyListeners();
+    });
   }
   
   // Lógica del Semáforo (Tu requerimiento clave)

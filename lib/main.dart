@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
-
+import 'viewmodels/auth_viewmodel.dart';
+import 'views/auth/login_view.dart';
 import 'viewmodels/inventory_viewmodel.dart';
 import 'views/home/home_view.dart';
 // Puedes dejar las demás importaciones si las necesitas en el futuro,
@@ -21,14 +22,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [ChangeNotifierProvider(create: (_) => InventoryViewModel())],
+      providers: [
+        ChangeNotifierProvider(create: (_) => InventoryViewModel()),
+        // EL CAMBIO ESTÁ AQUÍ: Agregamos el AuthViewModel a la lista
+        ChangeNotifierProvider(create: (_) => AuthViewModel()),
+      ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'SmartPantry',
         theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true),
-        // EL CAMBIO ESTÁ AQUÍ:
-        // Borramos todo el bloque de 'home: Builder(...)' y lo reemplazamos por:
-        home: const HomeView(),
+        // Por ahora lo dejamos en HomeView, pero pronto lo cambiaremos al Login
+        home: const LoginView(),
       ),
     );
   }
