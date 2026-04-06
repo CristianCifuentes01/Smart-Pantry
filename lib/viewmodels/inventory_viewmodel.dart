@@ -38,4 +38,13 @@ class InventoryViewModel extends ChangeNotifier {
     if (daysLeft <= 5) return Colors.yellow;    // Atención
     return Colors.green;                        // Fresco
   }
+  // Método para eliminar un producto
+  Future<void> deleteProduct(String productId) async {
+    try {
+      await _repository.deleteProduct(productId);
+    } catch (e) {
+      print("Error al eliminar (ViewModel): $e");
+      rethrow;
+    }
+  }
 }

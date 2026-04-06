@@ -118,6 +118,15 @@ class _ScannerViewState extends State<ScannerView> {
                     }
                   } catch (e) {
                     print("Error: $e");
+                    if (context.mounted) {
+                      Navigator.pop(ctx); // Cierra el diálogo
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Error al guardar: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
                   }
                 }
               },

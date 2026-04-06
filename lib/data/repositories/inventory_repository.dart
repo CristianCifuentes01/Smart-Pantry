@@ -44,4 +44,16 @@ class InventoryRepository {
           }).toList();
         });
   }
+
+  // Método para eliminar un producto
+  Future<void> deleteProduct(String productId) async {
+    try {
+      // Buscamos el documento por su ID y lo borramos
+      await _collection.doc(productId).delete();
+      print("Producto eliminado exitosamente");
+    } catch (e) {
+      print("Error eliminando producto: $e");
+      throw Exception("No se pudo eliminar el producto");
+    }
+  }
 }
