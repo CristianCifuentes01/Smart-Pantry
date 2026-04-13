@@ -1,0 +1,979 @@
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 1SmartPantry
+Especificación Técnica de Requerimientos del Sistema
+Flutter (Dart)  ·  Firebase  ·  MVVM + Repository Pattern  ·  Febrero 2026
+Este documento especifica los Requerimientos Funcionales (RF) y No Funcionales (RNF) de SmartPantry enriquecidos con su implementación técnica interna. 
+La columna 'Implementación Técnica y Descripción' de cada tabla muestra en la parte superior el código y componentes involucrados, y en la parte inferior una 
+explicación en prosa de cómo funciona ese mecanismo por dentro.
+1. Arquitectura del Sistema (MVVM + Repository)
+SmartPantry implementa el patrón MVVM complementado con el patrón Repository. La View solo dibuja; el ViewModel gestiona el estado y la lógica de pantalla;
+el Repository es la única fuente de verdad para los datos.
+Capa Componente en SmartPantry Responsabilidad Tecnología / Paquete
+View (UI) HomeView, ScannerView, 
+InventoryListView, 
+ProductDetailView, RecipesView,
+NotificationSettingsView, 
+widgets/Renderizar estado. Escuchar 
+ViewModel via Consumer<>. 
+Sin lógica de negocio.Flutter Widgets, Material 
+3, GoogleFonts, 
+CachedNetworkImage
+ViewModel InventoryViewModel, 
+ScannerViewModel, 
+RecipesViewModel, 
+AuthViewModel, 
+NotificationSettingsViewModelGestionar estado de pantalla. 
+Exponer isLoading, 
+errorMessage, listas. Llamar 
+Repository/Service.Provider (ChangeNotifier), 
+intl
+Repository InventoryRepository, 
+AuthRepositoryÚnica fuente de verdad. 
+Decide si lee de SQLite 
+(offline) o Firestore (online). 
+Gestiona sincronización.sqflite/drift (local), 
+cloud_firestore (nube), 
+connectivity_plus
+Service ApiService (HTTP), 
+FirebaseService (Auth + 
+Firestore), NotificationServiceLlamadas externas: 
+OpenFoodFacts API, 
+TheMealDB API, Firebase 
+Auth, notificaciones locales.http, firebase_core, 
+firebase_auth, 
+flutter_local_notifications
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 2Capa Componente en SmartPantry Responsabilidad Tecnología / Paquete
+Models ProductModel, MealModel, 
+MealDetailModel, UserModelClases Dart puras con 
+fromJson() / toJson(). Sin 
+dependencias de Flutter.Dart puro
+Core constants/, utils/ (getStatusColor,
+formatDate), theme/ (AppTheme)Utilidades transversales 
+reutilizables por todas las 
+capas.Dart puro, ThemeData 
+Material 3
+Regla fundamental: ningún widget en lib/views/ importa directamente cloud_firestore, http ni sqflite. Todo acceso a datos pasa por ViewModel → Repository → Service.
+1.1 Algoritmo del Semáforo de Caducidad
+Función getStatusColor(DateTime expiryDate) en lib/core/utils/product_utils.dart — consumida por InventoryViewModel al construir la lista de productos y el 
+dashboard.
+Estado Días 
+RestantesColor UI Regla en getStatusColor(expiryDate)
+Vencido < 0 días Rojo if (daysLeft < 0) return Colors.red;
+Crítico 0 – 2 días Naranja if (daysLeft <= 2) return Colors.orange;
+Atención 3 – 5 días Amarillo if (daysLeft <= 5) return Colors.yellow;
+Fresco > 5 días Verde return Colors.green;  // default
+1.2 Dependencias del Proyecto (pubspec.yaml)
+Paquete Versión Propósito
+provider ^6.1.1 State Management (MVVM). ChangeNotifier + Consumer 
+para conectar ViewModel con View.
+firebase_core ^2.24.2 Inicialización obligatoria del SDK de Firebase antes de 
+usar Auth o Firestore.
+firebase_auth incluido Autenticación con email/contraseña y Google Sign-In 
+(RF-01, RF-02, RF-03).
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 3Paquete Versión Propósito
+cloud_firestore ^4.14.0 Base de datos NoSQL en la nube para persistencia y 
+sincronización (RNF-03).
+mobile_scanner ^3.5.5 Escaneo de códigos EAN-13/UPC On-Device con Google
+ML Kit (RF-07).
+http ^1.2.0 Llamadas REST a OpenFoodFacts API y TheMealDB API
+(RF-08, RF-14, RF-15).
+sqflite / drift ^2.3.0 Persistencia local SQLite para funcionamiento offline 
+(RNF-02).
+cached_network_image ^3.3.1 Caché local de imágenes de productos para reducir 
+consumo de datos (RNF-06).
+flutter_local_notifications ^17.x Notificaciones locales programadas para alertas de 
+vencimiento (RF-12, RF-17, RNF-15).
+shared_preferences ^2.2.2 Almacenamiento clave-valor para preferencias de 
+notificación y favoritos (RF-16, RF-17).
+connectivity_plus ^5.x Detección de estado de red para lógica de sincronización 
+offline/online (RNF-03).
+google_fonts ^6.1.0 Tipografía Poppins en la interfaz de usuario con Material 
+Design 3 (RNF-10).
+intl ^0.19.0 Formateo de fechas localizado en toda la aplicación.
+fluttertoast ^8.2.4 Mensajes emergentes (toasts) para confirmaciones y 
+errores de red (RNF-07).
+2. Requerimientos Funcionales (RF)
+Cada requerimiento incluye: su descripción funcional (qué hace el sistema), la referencia técnica con el método o componente exacto (en fuente de código azul),
+y una descripción en prosa que explica cómo funciona ese mecanismo internamente.
+2.1 Autenticación y Gestión de Cuenta
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 4ID Nombre Descripción Funcional Implementación Técnica y Descripción Capa 
+MVVMVista
+RF-
+01Inicio de Sesión El sistema permite 
+autenticar al usuario con 
+correo/contraseña o 
+Google OAuth a través de
+Firebase Auth.FirebaseService.signIn() → 
+AuthViewModel.login() → Firebase Auth
+SDK
+Cuando el usuario pulsa 'Sign In', la vista llama
+al AuthViewModel. Este delega la operación al 
+FirebaseService, que invoca el SDK de 
+Firebase Auth. Si la autenticación es exitosa, 
+el UID del usuario queda disponible para todas
+las capas; si falla, el ViewModel expone un 
+mensaje de error que la vista muestra en 
+pantalla.Service 
+→ VM 
+→ ViewLogin
+RF-
+02Registro de 
+CuentaEl sistema permite crear 
+una cuenta nueva con 
+nombre, correo y 
+contraseña, o con Google
+Sign-In.FirebaseService.register() → 
+AuthViewModel.createAccount() → 
+Firebase Auth 
+createUserWithEmailAndPassword()
+Al pulsar 'Create Account', el AuthViewModel 
+recoge los campos del formulario y llama al 
+FirebaseService. Este invoca el método 
+createUserWithEmailAndPassword() del SDK. 
+Una vez creada la cuenta, también guarda el 
+nombre de usuario en el perfil de Firebase 
+Auth (updateDisplayName).Service 
+→ VM 
+→ ViewRegister
+RF-
+03Recuperación de
+ContraseñaEl sistema envía un 
+correo de recuperación 
+cuando el usuario pulsa 
+'Forgot Password?'.FirebaseService.resetPassword(email) 
+→ Firebase Auth 
+sendPasswordResetEmail(email)
+El enlace 'Forgot Password?' abre un diálogo 
+donde el usuario ingresa su correo. El 
+AuthViewModel llama al FirebaseService, que 
+ejecuta sendPasswordResetEmail(). Firebase 
+envía automáticamente el correo con el enlace
+de restablecimiento; la app no maneja esa 
+lógica internamente.Service 
+→ VM 
+→ ViewLogin
+2.2 Dashboard Principal y Navegación
+ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+RF-
+04Dashboard 
+PrincipalLa pantalla de inicio 
+muestra el conteo de
+productos urgentes, 
+en vigilancia y 
+frescos, y lista los InventoryViewModel.getGroupedProducts() →
+getStatusColor() → HomeView + 
+StreamBuilder
+Al cargar HomeView, el InventoryViewModel 
+obtiene todos los productos del InventoryRepositoryVM → 
+ViewDashboard
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 5ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+ítems que requieren 
+atención inmediata.y los clasifica usando la función getStatusColor(), 
+que calcula los días restantes de cada producto. 
+Los resultados se agrupan en tres contadores 
+(Urgente, En Vigilancia, Fresco) y se exponen 
+como variables observables. La vista se actualiza 
+automáticamente vía StreamBuilder cada vez que 
+cambia el inventario.
+RF-
+05Listado de 
+InventarioMuestra todos los 
+productos 
+agrupados por 
+estado de 
+vencimiento con 
+nombre, días 
+restantes, categoría 
+y cantidad.InventoryRepository.getProducts() → 
+Stream<List<ProductModel>> → 
+ListView.builder
+El InventoryRepository expone un Stream que 
+escucha cambios en la colección de Firestore en 
+tiempo real. El InventoryViewModel suscribe al 
+Stream y actualiza la lista del estado. La vista 
+utiliza ListView.builder para renderizar las tarjetas 
+de producto de forma lazy, lo que evita cargar 
+todos los ítems en memoria de una sola vez.Repo 
+→ VM 
+→ ViewPantry List
+RF-
+06Filtrado y 
+OrdenamientoPermite filtrar la lista 
+por Fecha, 
+Categoría o Nombre 
+mediante controles 
+desplegables.InventoryViewModel.sortProducts(SortType)
+→ List.sort() → notifyListeners()
+Los dropdowns de la vista envían el criterio de 
+ordenamiento seleccionado al InventoryViewModel.
+Este aplica un List.sort() sobre la lista en memoria 
+usando comparadores distintos según el SortType 
+elegido (fecha, categoría o nombre). Al terminar 
+llama a notifyListeners() para que la vista refresque 
+el orden mostrado, sin hacer consultas adicionales 
+a la base de datos.VM → 
+ViewPantry List
+2.3 Escaneo y Registro de Productos
+ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+RF-
+07Escaneo de 
+Código de 
+BarrasActiva la cámara del
+dispositivo para 
+capturar códigos 
+EAN-13/UPC con 
+guía visual y opción
+de flash.MobileScanner widget → onDetect callback → 
+ScannerViewModel.onBarcodeDetected(barcode)
+La ScannerView instancia el widget MobileScanner del 
+paquete mobile_scanner, que usa Google ML Kit para 
+procesar los frames de la cámara de forma nativa en el 
+dispositivo, sin enviar datos a la nube. Cuando ML Kit 
+detecta un código de barras válido, se dispara el callback 
+onDetect con el valor del código, que es recibido por el 
+ScannerViewModel. Se aplica un mecanismo de throttle View →
+VMScan
+& 
+Add
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 6ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+para ignorar detecciones duplicadas en frames 
+consecutivos.
+RF-
+08Identificación 
+Automática 
+por APITras el escaneo, 
+consulta la API de 
+OpenFoodFacts 
+para extraer el 
+nombre e imagen 
+del producto.ApiService.getProductByBarcode(barcode) → GET 
+openfoodfacts.org/api/v0/product/{barcode}.json
+El ScannerViewModel recibe el código escaneado y llama 
+al ApiService, que ejecuta una petición HTTP GET al 
+endpoint de OpenFoodFacts. Si el campo status del JSON 
+de respuesta es 1, se parsean product_name e image_url y
+se construye un ProductModel parcial. Si status es 0, el 
+producto no existe en la base de datos y el ViewModel 
+activa el estado de ingreso manual para que el usuario 
+escriba el nombre.Service
+→ VM 
+→ ViewScan
+& 
+Add
+RF-
+09Fecha de 
+Vencimiento 
+RápidaOfrece botones de 
+selección rápida (+3
+días, +1 semana, 
++2 semanas) y un 
+selector de fecha 
+personalizado.ScannerViewModel.setQuickExpiry(days) → 
+DateTime.now().add(Duration(days:n)) | 
+showDatePicker()
+Los botones de selección rápida llaman a setQuickExpiry() 
+en el ScannerViewModel, que calcula la fecha sumando los
+días indicados a la fecha actual con 
+DateTime.now().add(Duration(days: n)). El botón de fecha 
+personalizada abre el selector nativo de Flutter 
+(showDatePicker()), que ya conoce el usuario y no requiere
+implementación adicional.VM → 
+ViewScan
+& 
+Add
+RF-
+10Agregar 
+Producto al 
+InventarioEl usuario confirma 
+el producto con la 
+fecha y lo guarda 
+pulsando 'Add to 
+Pantry'.ScannerViewModel.addProduct() → 
+InventoryRepository.addProduct(model) → SQLite 
++ Firestore
+Al pulsar 'Add to Pantry', el ScannerViewModel construye 
+el ProductModel completo con todos los datos recopilados 
+(código, nombre, imagen, fecha, cantidad) y lo pasa al 
+InventoryRepository. El repositorio guarda el registro 
+primero en SQLite para disponibilidad offline y luego lo 
+sincroniza con Firestore. Una vez confirmado, el 
+ViewModel navega de vuelta al listado de inventario y 
+muestra un toast de confirmación.VM → 
+Repo 
+→ DBScan
+& 
+Add
+2.4 Gestión del Detalle de Producto
+ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+RF-
+11Detalle de 
+ProductoMuestra imagen, 
+nombre, categoría, 
+marca, cantidad con InventoryViewModel.getProductById(id) → 
+ProductDetailView + CachedNetworkImageVM → 
+ViewProduct
+Detail
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 7ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+controles +/- y fecha 
+de vencimiento.Al navegar a la vista de detalle, el InventoryViewModel 
+recupera el ProductModel por su ID y lo expone a la 
+vista. La imagen del producto se renderiza con 
+CachedNetworkImage, que la descarga una vez y la 
+guarda localmente; si la URL falla, el errorWidget 
+muestra un ícono genérico de alimento. Los botones 
++/- de cantidad llaman directamente a métodos del 
+ViewModel que actualizan el valor y persisten el 
+cambio.
+RF-
+12Alerta 
+Individual por
+ProductoPermite activar una 
+notificación 
+personalizada por 
+producto (ej: 2 días 
+antes de que venza).NotificationService.scheduleNotification(id,
+expiryDate, daysBefore) → 
+flutter_local_notifications.zonedSchedule()
+El toggle de alerta en la vista de detalle llama al 
+NotificationService con el ID del producto, su fecha de 
+vencimiento y los días de antelación configurados. El 
+servicio calcula la fecha exacta de disparo restando los 
+días de antelación a expiryDate y llama a 
+zonedSchedule() del paquete flutter_local_notifications,
+que agenda la notificación en el sistema operativo. Esta
+notificación funciona incluso con la app cerrada o sin 
+conexión.Service 
+→ VM 
+→ ViewProduct
+Detail
+RF-
+13Actualizar / 
+Eliminar 
+ProductoPermite actualizar los
+datos del producto o 
+eliminarlo del 
+inventario desde la 
+vista de detalle.InventoryRepository.updateProduct(model) → 
+Firestore.doc(id).update() | 
+deleteProduct(id) → .delete()
+El botón 'Update Pantry' recopila los datos modificados 
+del formulario y los pasa al InventoryRepository, que 
+ejecuta un update() en el documento de Firestore 
+correspondiente y actualiza el registro en SQLite. El 
+botón 'Remove' llama a deleteProduct(id), que borra el 
+documento de Firestore y el registro local. Ambas 
+operaciones están envueltas en try-catch para manejar 
+errores de red sin cerrar la app.Repo → 
+FirestoreProduct
+Detail
+2.5 Recetas y Economía Circular
+ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+RF-
+14Sugerencia de
+RecetasMuestra recetas de 
+TheMealDB 
+basadas en los 
+ingredientes 
+próximos a vencer InventoryViewModel.getExpiringItems(days:3) →
+ApiService.getRecipesByIngredient(name) → 
+TheMealDB API
+Al iniciar la pantalla de recetas, el RecipesViewModel 
+consulta al InventoryRepository por los productos cuya Service 
+→ VM 
+→ ViewRecipes
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 8ID Nombre Descripción 
+FuncionalImplementación Técnica y Descripción Capa 
+MVVMVista
+en los próximos 3 
+días.fecha de vencimiento cae dentro de los próximos 3 días. 
+Por cada ingrediente encontrado, lanza una petición 
+paralela a TheMealDB usando Future.wait(), lo que 
+reduce el tiempo de carga total. Los resultados de todas 
+las consultas se combinan, se eliminan duplicados y se 
+exponen como la lista de recetas sugeridas.
+RF-
+15Acción 
+Cocinar (Cook
+Now)Cada tarjeta de 
+receta tiene un 
+botón 'Cook Now' 
+que navega a las 
+instrucciones 
+completas.RecipesViewModel.getMealDetail(mealId) → GET 
+themealdb.com/api/json/v1/1/lookup.php?i={id}
+Al pulsar 'Cook Now', el RecipesViewModel hace una 
+segunda petición al endpoint de detalle de TheMealDB 
+con el ID de la receta. Este endpoint devuelve las 
+instrucciones paso a paso y la lista de ingredientes con 
+sus cantidades. El ViewModel parsea la respuesta y 
+navega a RecipeDetailView usando Navigator.push(), 
+pasando el modelo de detalle como argumento.Service 
+→ VM 
+→ ViewRecipes
+RF-
+16Favoritos en 
+RecetasEl usuario puede 
+marcar o desmarcar
+recetas como 
+favoritas desde la 
+tarjeta de cada 
+receta.RecipesViewModel.toggleFavorite(mealId) → 
+shared_preferences.setBool('fav_$mealId', 
+bool)
+El ícono de corazón en cada tarjeta llama a 
+toggleFavorite() en el RecipesViewModel. Este lee el 
+estado actual del favorito desde shared_preferences y lo
+invierte, guardando el nuevo valor con la clave 
+'fav_{mealId}'. Luego llama a notifyListeners() para que 
+la vista actualice el ícono inmediatamente. El estado de 
+favoritos persiste entre sesiones porque 
+shared_preferences escribe en el almacenamiento local 
+del dispositivo.VM → 
+ViewRecipes
+2.6 Notificaciones, Reportes y Navegación Global
+ID Nombre Descripción Funcional Implementación Técnica y Descripción Capa 
+MVVMVista
+RF-
+17Configuración de
+NotificacionesEl usuario configura 
+notificaciones push, 
+frecuencia de alertas, 
+hora preferida y 
+antelación de aviso.NotificationSettingsViewModel → 
+shared_preferences → 
+NotificationService.rescheduleAll()
+Cada cambio en la pantalla de configuración 
+es capturado por el 
+NotificationSettingsViewModel y guardado en 
+shared_preferences (frecuencia, hora 
+preferida, días de antelación). Al confirmar, el 
+ViewModel llama a 
+NotificationService.rescheduleAll(), que VM → 
+Service 
+→ ViewNotif. 
+Settings
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 9ID Nombre Descripción Funcional Implementación Técnica y Descripción Capa 
+MVVMVista
+cancela todas las notificaciones pendientes y 
+las reagenda con los nuevos parámetros 
+usando flutter_local_notifications. Esto 
+garantiza que los cambios se apliquen de 
+inmediato.
+RF-
+18Reporte Semanal
+de DesperdiciosEl sistema envía 
+semanalmente un reporte
+por correo con el 
+resumen de ítems 
+consumidos y 
+desperdiciados.Firebase Cloud Function (scheduled) →
+lee 'consumed_history' en Firestore →
+envía email vía SendGrid
+Esta funcionalidad vive en el servidor, no en el
+dispositivo. Una Cloud Function de Firebase 
+programada con un cron semanal lee la 
+colección 'consumed_history' del usuario en 
+Firestore, calcula los totales de ítems 
+consumidos vs. desperdiciados y genera el 
+cuerpo del correo. El envío se realiza a través 
+de la extensión Firebase Email o la API de 
+SendGrid, sin requerir que la app esté activa 
+en el dispositivo.Cloud 
+Function
+→ 
+FirestoreNotif. 
+Settings
+RF-
+19Navegación 
+Principal 
+(Bottom Nav)Barra de navegación 
+inferior permanente con 
+accesos a Pantry, Scan, 
+Recipes, Home y Profile.NavigationBar (Material 3) en 
+MainScaffold → go_router / Navigator 
+2.0
+La barra de navegación inferior es un 
+componente NavigationBar de Material 3 
+definido en un widget MainScaffold que 
+envuelve todas las pantallas principales. Cada
+ítem de la barra corresponde a una ruta 
+nombrada gestionada por go_router. Al 
+cambiar de pestaña, el router decide si crear 
+una nueva instancia de la vista o reutilizar la 
+existente, preservando el estado de 
+desplazamiento en cada pantalla.View 
+(Shell)Global
+3. Requerimientos No Funcionales (RNF)
+Cada RNF incluye la referencia técnica exacta (paquete, clase y método) en la parte superior de su celda de implementación, y debajo una descripción en prosa
+que explica el mecanismo concreto que garantiza el cumplimiento del atributo de calidad.
+3.1 Arquitectura y Persistencia
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 10ID Categoría Descripción Implementación Técnica y Descripción Criterio de Aceptación
+RNF-
+01Arquitectura 
+MVVMEl sistema sigue el patrón 
+MVVM + Repository. La 
+View no contiene lógica 
+de negocio; el ViewModel 
+gestiona el estado; el 
+Repository es la única 
+fuente de verdad.lib/viewmodels/ extienden 
+ChangeNotifier; Views usan 
+Consumer<VM> o context.watch<>()
+Cada ViewModel extiende ChangeNotifier
+del paquete Provider. Las vistas se 
+suscriben a los cambios usando 
+Consumer<ViewModel> o 
+context.watch<ViewModel>(), y solo 
+llaman a métodos del ViewModel, nunca 
+a repositorios ni servicios directamente. 
+El InventoryRepository es la única clase 
+que conoce tanto SQLite como Firestore; 
+los ViewModels solo ven la interfaz del 
+repositorio.Ningún widget en 
+lib/views/ importa 
+cloud_firestore ni http 
+directamente.
+RNF-
+02Persistencia 
+Offline (SQLite)La app opera 
+completamente sin 
+conexión usando SQLite 
+como base de datos local,
+gestionada con sqflite o 
+drift.InventoryRepository → sqflite 
+query('products') → fallback a 
+Firestore si hay red
+El InventoryRepository implementa una 
+estrategia cache-first: siempre lee 
+primero de la base de datos SQLite local. 
+Si se detecta conexión a internet 
+mediante connectivity_plus, sincroniza los
+cambios pendientes con Firestore. Esto 
+garantiza que el usuario nunca vea una 
+pantalla vacía por falta de conexión, y 
+que la app funcione sin interrupciones en 
+zonas con señal intermitente.Con modo avión activo, 
+el inventario carga en ≤ 
+500 ms desde SQLite.
+RNF-
+03Sincronización 
+FirebaseLos datos locales se 
+sincronizan con Firestore 
+al recuperar conexión, sin 
+pérdida de información.connectivity_plus → 
+syncLocalToFirestore() → batch 
+write → synced=true en SQLite
+El InventoryRepository escucha el Stream
+de conectividad de connectivity_plus. 
+Cuando detecta que la conexión vuelve, 
+ejecuta syncLocalToFirestore(), que 
+consulta los registros de SQLite con 
+synced=false y los escribe en Firestore 
+usando un batch write (escritura en lote) 
+para optimizar las operaciones de red. Al 
+confirmar el éxito, marca esos registros 
+como synced=true en SQLite para evitar 
+duplicados.Cambios realizados 
+offline se reflejan en 
+Firestore en ≤ 5 
+segundos al recuperar 
+red.
+3.2 Rendimiento y Optimización
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 11ID Categoría Descripción Implementación Técnica y Descripción Criterio de Aceptación
+RNF-
+04Rendimiento – 
+EscaneoEl reconocimiento del 
+código de barras se 
+completa en ≤ 3 segundos
+desde que el código entra 
+al visor.mobile_scanner + Google ML Kit 
+On-Device + Throttle en 
+ScannerViewModel
+El paquete mobile_scanner delega el 
+procesamiento de imagen a Google ML 
+Kit, que corre directamente en el 
+procesador del dispositivo sin enviar 
+frames a la nube. Esto elimina la latencia 
+de red en el escaneo. El 
+ScannerViewModel aplica un mecanismo 
+de throttle para ignorar detecciones en 
+ventanas de tiempo menores a 500ms, 
+evitando llamadas duplicadas a la API de 
+OpenFoodFacts.90% de escaneos en 
+buenas condiciones de 
+luz resueltos en ≤ 3 s.
+RNF-
+05Rendimiento – 
+UICada pantalla renderiza 
+en ≤ 2 segundos en 
+dispositivos de gama 
+media (≥ 2 GB RAM, 
+Android 10+ / iOS 14+).ListView.builder (lazy) + 
+cached_network_image + Flutter 
+DevTools Performance overlay
+La lista de inventario usa ListView.builder,
+que construye solo los widgets visibles en
+pantalla en lugar de renderizar toda la 
+lista de golpe. Las imágenes se cargan 
+con CachedNetworkImage para evitar re-
+descargas. El rendimiento se verifica con 
+el Performance Overlay de Flutter 
+DevTools, que muestra si la app 
+mantiene los 60fps estables (frames de 
+16ms o menos) durante el 
+desplazamiento.0 janky frames en listado
+con 100+ productos 
+(Flutter DevTools).
+RNF-
+06Caché de 
+ImágenesLas imágenes de 
+productos se almacenan 
+en caché local para evitar 
+re-descargas y reducir el 
+consumo de datos 
+móviles.CachedNetworkImage + CacheManager
+(maxAgeCacheObject: 
+Duration(days: 7))
+CachedNetworkImage almacena en el 
+sistema de archivos del dispositivo cada 
+imagen descargada. El CacheManager 
+se configura con maxAgeCacheObject de
+7 días, lo que significa que una imagen 
+no será re-descargada durante una 
+semana. Si la URL de la imagen devuelve
+un error 404 u otro fallo, el errorWidget 
+muestra automáticamente un ícono 
+genérico de alimento, evitando que la UI 
+quede en blanco.Una imagen descargada
+no genera tráfico de red 
+en accesos posteriores 
+durante 7 días.
+3.3 Robustez y Seguridad
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 12ID Categoría Descripción Implementación Técnica y Descripción Criterio de Aceptación
+RNF-
+07Robustez ante 
+Fallos de RedLa app no se cierra ante 
+timeouts o errores de API;
+muestra mensajes 
+informativos y opciones 
+de reintento.try-catch en todas las llamadas 
+HTTP/Firestore → ViewModel expone
+ErrorState → fluttertoast
+Cada método del ApiService y del 
+InventoryRepository que realiza 
+operaciones de red está envuelto en un 
+bloque try-catch. Si ocurre una excepción
+(timeout, sin internet, error del servidor), 
+el catch la captura y el ViewModel 
+actualiza su estado a ErrorState con un 
+mensaje legible. La vista observa ese 
+estado y muestra un toast con fluttertoast 
+y un botón de reintento que vuelve a 
+llamar al método fallido.Desconectar red durante
+una consulta muestra 
+toast informativo sin 
+crash de la app.
+RNF-
+08Seguridad – 
+AutenticaciónLas credenciales se 
+gestionan exclusivamente 
+por Firebase Auth. No se 
+almacenan contraseñas 
+en texto plano en ninguna 
+capa.Firebase Auth JWT tokens; UID 
+como clave en Firestore y SQLite;
+sin contraseñas en 
+shared_preferences
+Firebase Auth gestiona internamente los 
+tokens JWT de sesión; la app nunca ve ni
+almacena la contraseña del usuario. El 
+UID del usuario autenticado (una cadena 
+opaca) se usa como clave de partición en
+todas las colecciones de Firestore y 
+tablas de SQLite, asegurando que los 
+datos de un usuario no interfieran con los
+de otro. Las reglas de seguridad de 
+Firestore validan el UID en el servidor 
+antes de permitir cualquier lectura o 
+escritura.El schema SQLite no 
+contiene campos de 
+contraseña (verificable 
+con DB Browser for 
+SQLite).
+RNF-
+09Privacidad de 
+DatosLos datos del inventario 
+de cada usuario son 
+accesibles únicamente 
+por ese usuario, en 
+Firestore y en SQLite.Firestore Rules: allow read, 
+write if request.auth.uid == 
+userId; SQLite particionado por 
+userId
+Las Security Rules de Firestore se 
+configuran en la consola de Firebase 
+para que solo el documento cuyo campo 
+userId coincida con el UID del token JWT 
+pueda ser leído o modificado. En SQLite, 
+todas las tablas incluyen una columna 
+userId como parte de sus consultas 
+WHERE, de modo que aunque dos 
+usuarios compartan el dispositivo, sus 
+datos nunca se mezclan.Con dos cuentas 
+distintas en el mismo 
+dispositivo, el usuario B 
+no ve los productos de 
+A.
+3.4 Interfaz de Usuario y Accesibilidad
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 13ID Categoría Descripción Implementación Técnica y Descripción Criterio de 
+Aceptación
+RNF-
+10UI – Material 
+Design 3La interfaz usa Material 
+Design 3 con tema 
+dinámico y tipografías de
+Google Fonts.ThemeData(useMaterial3:true, 
+colorScheme: 
+ColorScheme.fromSeed(Colors.green))
++ GoogleFonts.poppinsTextTheme()
+El archivo lib/core/theme/app_theme.dart 
+define el ThemeData con useMaterial3: true
+y un ColorScheme generado a partir del 
+color semilla verde de la marca. La 
+tipografía Poppins se aplica globalmente a 
+través de 
+GoogleFonts.poppinsTextTheme(). Todos 
+los widgets de la app usan 
+Theme.of(context).colorScheme para los 
+colores, lo que garantiza consistencia visual
+y facilita el cambio de tema sin tocar los 
+widgets individuales.Flutter analyze no 
+reporta warnings de 
+widgets deprecados.
+RNF-
+11Modo Oscuro La interfaz se adapta 
+automáticamente al 
+modo claro u oscuro 
+configurado en el 
+sistema operativo.MaterialApp(themeMode: 
+ThemeMode.system, theme: 
+AppTheme.light, darkTheme: 
+AppTheme.dark)
+El MaterialApp define dos objetos 
+ThemeData: uno para el modo claro y otro 
+para el oscuro. Al usar ThemeMode.system,
+Flutter lee la preferencia del sistema 
+operativo y aplica el tema correspondiente 
+sin intervención del código de la app. Dado 
+que todos los colores se definen a través de
+colorScheme y no de valores 
+hexadecimales fijos, el cambio de tema es 
+automático y afecta a toda la interfaz de 
+forma coherente.La app cambia de tema
+al activar modo oscuro 
+en el dispositivo, sin 
+necesidad de 
+reiniciarla.
+RNF-
+12Accesibilidad Todos los elementos 
+interactivos tienen 
+etiquetas semánticas 
+compatibles con lectores 
+de pantalla (TalkBack / 
+VoiceOver).Semantics(label:'...') en 
+IconButton, Image; botones mínimo 
+48x48 dp (Material guideline)
+Los íconos y botones sin texto visible se 
+envuelven en el widget Semantics con una 
+propiedad label descriptiva (ej: 'Agregar al 
+inventario', 'Eliminar producto'). Las 
+imágenes de producto incluyen 
+semanticsLabel con el nombre del ítem. El 
+tamaño mínimo de los botones se respeta 
+mediante el parámetro minimumSize de 
+ButtonStyle, siguiendo la guía de Material 
+Design que recomienda 48x48 dp para 
+áreas táctiles accesibles.TalkBack en Android 
+anuncia correctamente 
+los botones principales 
+de la app.
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 143.5 Escalabilidad, Compatibilidad y Notificaciones
+ID Categoría Descripción Implementación Técnica y Descripción Criterio de 
+Aceptación
+RNF-
+13Escalabilidad 
+de DatosEl esquema local 
+soporta ≥ 500 
+productos sin 
+degradar el 
+rendimiento del 
+listado.SQLite indexado por userId + expiryDate; 
+InventoryRepository.getProducts() con 
+LIMIT/OFFSET; ListView.builder
+La tabla de productos en SQLite tiene un índice 
+compuesto sobre las columnas userId y expiryDate, 
+las dos más usadas en las consultas de filtrado y 
+ordenamiento. El InventoryRepository implementa 
+paginación con LIMIT y OFFSET para cargar los 
+productos en bloques de 20 ítems, evitando traer 
+miles de registros en una sola consulta. 
+ListView.builder complementa esto renderizando solo 
+los ítems visibles.Lista de 500 
+productos hace 
+scroll sin frames > 
+16 ms (medido en 
+Flutter DevTools).
+RNF-
+14Compatibilidad
+de PlataformaLa app funciona 
+correctamente en 
+Android 10+ (API 
+29+) y iOS 14+ sin 
+diferencias 
+funcionales entre 
+plataformas.minSdkVersion 29 en build.gradle; platform 
+:ios, '14.0' en Podfile; dependencias 
+cross-platform
+La versión mínima de Android se configura en 
+android/app/build.gradle y la de iOS en ios/Podfile. 
+Todas las dependencias seleccionadas 
+(mobile_scanner, flutter_local_notifications, 
+firebase_core, etc.) tienen soporte oficial para ambas 
+plataformas en las versiones requeridas. Los 
+permisos específicos de cada plataforma (cámara, 
+notificaciones) se declaran en AndroidManifest.xml e 
+Info.plist respectivamente.Las funcionalidades
+principales pasan 
+las pruebas en 
+emulador Android 
+12 y simulador iOS 
+16.
+RNF-
+15Notificaciones 
+Locales OfflineLas alertas de 
+vencimiento se 
+disparan sin 
+conexión a internet 
+usando 
+notificaciones 
+locales del SO.flutter_local_notifications.zonedSchedule()
++ timezone + androidScheduleMode: 
+exactAllowWhileIdle
+Las notificaciones se programan con el método 
+zonedSchedule() del paquete 
+flutter_local_notifications, que agenda una notificación
+para una fecha y hora exactas usando la zona horaria
+del dispositivo (configurada con el paquete timezone). 
+Al usar AndroidScheduleMode.exactAllowWhileIdle, la
+notificación se dispara incluso cuando el dispositivo 
+está en modo reposo (Doze Mode), sin necesidad de 
+red ni de que la app esté activa.Con modo avión 
+activo, la 
+notificación 
+programada 
+aparece 
+exactamente en la 
+hora configurada.
+4. Flujos Técnicos de Integración
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 15Los flujos describen el recorrido exacto de los datos entre capas para los procesos más importantes del sistema.
+4.1 Flujo: Escanear y Agregar un Producto
+ScannerView → ScannerViewModel → ApiService (OpenFoodFacts) → InventoryRepository → SQLite + Firestore
+# Paso del Flujo Técnico
+1 View: ScannerView activa MobileScanner widget → cámara del dispositivo inicia (requiere permiso camera en 
+AndroidManifest e Info.plist).
+2 View → ViewModel: onDetect(barcode) dispara ScannerViewModel.onBarcodeDetected(barcode: String). Se 
+aplica throttle para evitar múltiples llamadas.
+3 ViewModel → Service: ScannerViewModel llama ApiService.getProductByBarcode(barcode). El servicio ejecuta 
+GET https://world.openfoodfacts.org/api/v0/product/{barcode}.json con http.get() envuelto en try-catch.
+4 Service → ViewModel: Si status == 1 → parsea product_name, image_url y retorna ProductModel parcial. Si 
+status == 0 → lanza ProductNotFoundException → ViewModel activa modo ingreso manual.
+5 ViewModel → View: ViewModel expone foundProduct (ProductModel?) y uiState (loading / found / notFound). La 
+View reacciona con Consumer<ScannerViewModel>.
+6 View → ViewModel: Usuario selecciona fecha rápida (+3d, +1sem) o abre showDatePicker() nativo → 
+ScannerViewModel.setExpiryDate(DateTime).
+7 ViewModel → Repository: Usuario pulsa 'Add to Pantry' → ScannerViewModel.confirmAdd() → 
+InventoryRepository.addProduct(product) → guarda en SQLite y Firestore.
+8 Repository → View: addProduct() completa → ViewModel emite ProductAddedState → ScannerView navega de 
+vuelta con Navigator.pop() y muestra toast de confirmación.
+4.2 Flujo: Cargar Recetas por Ingredientes Próximos a Vencer
+RecipesView → RecipesViewModel → InventoryRepository (SQLite) → ApiService (TheMealDB) → RecipesView
+# Paso del Flujo Técnico
+1 View: RecipesView se inicializa → ConsumerWidget llama RecipesViewModel.loadRecipes() en initState.
+2 ViewModel → Repository: RecipesViewModel llama InventoryRepository.getExpiringProducts(withinDays: 3) → 
+SQLite query filtra productos con expiryDate <= hoy + 3 días.
+3 ViewModel → Service: Por cada ingrediente expirante, ApiService.getRecipesByIngredient(ingredientName) → 
+peticiones paralelas con Future.wait([...]).
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 16# Paso del Flujo Técnico
+4 Service → ViewModel: JSON de TheMealDB parseado a lista de MealModel. ViewModel combina resultados y 
+elimina duplicados.
+5 ViewModel → View: ViewModel expone List<MealModel> recipeList. RecipesView renderiza tarjetas con 
+CachedNetworkImage para los thumbnails.
+6 View → ViewModel (Cook Now): RecipesViewModel.getMealDetail(mealId) → GET 
+themealdb.com/api/json/v1/1/lookup.php?i={id}.
+7 ViewModel → View: RecipesViewModel expone selectedMeal (MealDetailModel). View navega a 
+RecipeDetailView con Navigator.push().
+5. Trazabilidad: RF ↔ Componentes del Código
+Vincula cada grupo de requerimientos funcionales con los archivos Dart del repositorio GitHub (CristianCifuentes01/Smart-Pantry).
+RF Nombre Vista (View) ViewModel Repository / Service
+RF-
+01/02/03Autenticación LoginView, RegisterView AuthViewModel FirebaseService → 
+Firebase Auth
+RF-04 Dashboard HomeView InventoryViewModel InventoryRepository
+→ Firestore
+RF-05/06 Inventario InventoryListView InventoryViewModel InventoryRepository
+→ SQLite + 
+Firestore
+RF-
+07/08/09/10Escaneo ScannerView ScannerViewModel ApiService 
+(OpenFoodFacts) + 
+InventoryRepository
+RF-
+11/12/13Detalle 
+ProductoProductDetailView InventoryViewModel InventoryRepository
++ 
+NotificationService
+RF-
+14/15/16Recetas RecipesView, 
+RecipeDetailViewRecipesViewModel ApiService 
+(TheMealDB) + 
+shared_preferences
+RF-17/18 Notificaciones NotificationSettingsView NotificationSettingsViewModel NotificationService
++ 
+shared_preferences 
++ Cloud Functions
+SmartPantry  |  Especificación Técnica de Requerimientos   |  Flutter + Firebase + MVVM
+Cristian Andres Cifuentes Ruiz  ·  Computación Móvil  ·  Página 17RF Nombre Vista (View) ViewModel Repository / Service
+RF-19 Navegación 
+GlobalMainScaffold 
+(BottomNavBar)— go_router / 
+Navigator 2.0
+SmartPantry  ·  Computación Móvil  ·  Cristian Andres Cifuentes Ruiz  ·  2026
