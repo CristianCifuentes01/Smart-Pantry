@@ -6,6 +6,7 @@ import 'viewmodels/auth_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'viewmodels/inventory_viewmodel.dart';
 import 'views/main/main_view.dart'; // Importar el MainView verdadero
+import 'viewmodels/recipes_viewmodel.dart';
 
 void main() async {
   // Asegura que Flutter esté listo antes de arrancar Firebase
@@ -24,6 +25,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => InventoryViewModel()),
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
+        ChangeNotifierProvider(create: (_) => RecipesViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

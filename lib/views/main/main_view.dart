@@ -3,6 +3,7 @@ import '../home/home_view.dart';
 import '../recipes/recipes_view.dart';
 import '../profile/profile_view.dart';
 
+
 class MainView extends StatefulWidget {
   const MainView({super.key});
 
