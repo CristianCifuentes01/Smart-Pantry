@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:connectivity_plus/connectivity_plus.dart'; // NUEVO: Importamos Connectivity
 import '../models/product_model.dart';
 import '../services/local_db_service.dart';
+import '../services/notification_service.dart';
 
 class InventoryRepository {
   final CollectionReference _collection = FirebaseFirestore.instance.collection('pantry_items');
@@ -78,6 +79,8 @@ class InventoryRepository {
 
     // C. Intentamos sincronizar todo de inmediato (Si falla, quedará pendiente)
     syncLocalToFirestore();
+    // Programamos la alarma de caducidad
+    await NotificationService().scheduleExpiryNotification(product);
   }
 
   // --- 2. LEER PRODUCTOS (Estrategia Cache-First) ---
@@ -113,6 +116,9 @@ class InventoryRepository {
   Future<void> deleteProduct(String productId) async {
     // A. Borrar localmente al instante
     await _localDb.deleteProduct(productId);
+    
+    // Cancelar la notificación programada
+    await NotificationService().cancelNotification(productId);
     
     // B. Intentar borrar en la nube
     try {

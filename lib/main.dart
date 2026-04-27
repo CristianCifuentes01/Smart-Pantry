@@ -7,11 +7,14 @@ import 'views/auth/login_view.dart';
 import 'viewmodels/inventory_viewmodel.dart';
 import 'views/main/main_view.dart'; // Importar el MainView verdadero
 import 'viewmodels/recipes_viewmodel.dart';
+import 'viewmodels/notification_settings_viewmodel.dart';
+import 'data/services/notification_service.dart';
 
 void main() async {
   // Asegura que Flutter esté listo antes de arrancar Firebase
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
+  await NotificationService().init();
 
   runApp(const MyApp());
 }
@@ -26,6 +29,7 @@ class MyApp extends StatelessWidget {
         ChangeNotifierProvider(create: (_) => InventoryViewModel()),
         ChangeNotifierProvider(create: (_) => AuthViewModel()),
         ChangeNotifierProvider(create: (_) => RecipesViewModel()),
+        ChangeNotifierProvider(create: (_) => NotificationSettingsViewModel()),
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,

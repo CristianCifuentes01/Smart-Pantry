@@ -60,6 +60,8 @@ dependencies:
   http: ^1.2.0                # Peticiones API
   cached_network_image: ^3.3.1 # Imágenes
   connectivity_plus: ^7.1.0
+  flutter_local_notifications: ^17.1.2 # Notificaciones locales
+  timezone: ^0.9.2 # Zona horaria
 
 dev_dependencies:
   flutter_test:
