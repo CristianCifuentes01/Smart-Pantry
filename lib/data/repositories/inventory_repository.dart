@@ -127,4 +127,18 @@ class InventoryRepository {
       print("⚠️ Sin internet: Borrado local, pendiente en la nube.");
     }
   }
+
+  // --- 4. ACTUALIZAR PRODUCTO (RF-13) ---
+  Future<void> updateProduct(ProductModel product) async {
+    // 1. Guardar localmente primero (offline-first)
+    product.synced = 0;
+    await _localDb.insertProduct(product); // insertProduct usa ConflictAlgorithm.replace
+    
+    // 2. Reprogramar notificación si la fecha cambió o se activó
+    await NotificationService().cancelNotification(product.id!);
+    await NotificationService().scheduleExpiryNotification(product);
+
+    // 3. Intentar sincronizar a la nube
+    syncLocalToFirestore();
+  }
 }

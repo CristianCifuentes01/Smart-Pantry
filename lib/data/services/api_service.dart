@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import '../models/meal_model.dart'; // NUEVO: Importamos el modelo de recetas
+import '../models/meal_detail_model.dart';
 
 class ApiService {
   
@@ -65,5 +66,28 @@ class ApiService {
       print("Error en ApiService (TheMealDB): $e");
       return []; // Si falla la red, evitamos que la app se caiga
     }
+  }
+
+  // RF-15: Obtener detalles e instrucciones de una receta
+  Future<MealDetailModel?> getMealDetail(String mealId) async {
+    try {
+      final url = Uri.parse('$_mealDbBaseUrl/lookup.php?i=$mealId');
+      print("Consultando detalle: $url");
+      final response = await http.get(url);
+
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data['meals'] != null && data['meals'].isNotEmpty) {
+          return MealDetailModel.fromJson(data['meals'][0]);
+        } else {
+          print("No se encontraron platos para el ID: $mealId");
+        }
+      } else {
+        print("Error de API: Código ${response.statusCode}");
+      }
+    } catch (e) {
+      print("Excepción en ApiService.getMealDetail: $e");
+    }
+    return null;
   }
 }

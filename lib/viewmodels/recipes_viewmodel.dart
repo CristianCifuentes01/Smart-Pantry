@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../data/models/meal_model.dart';
+import '../data/models/meal_detail_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/local_db_service.dart';
 
@@ -113,5 +115,30 @@ class RecipesViewModel extends ChangeNotifier {
   void _setLoading(bool value) {
     _isLoading = value;
     notifyListeners(); // Avisa a la pantalla que debe redibujarse
+  }
+
+  // --- RF-15: Acción Cocinar (Detalles de la receta) ---
+  Future<MealDetailModel?> getMealDetail(String mealId) async {
+    try {
+      print("Obteniendo detalles para mealId: $mealId");
+      final detail = await _apiService.getMealDetail(mealId);
+      return detail;
+    } catch (e) {
+      print("Excepción en getMealDetail: $e");
+      return null;
+    }
+  }
+
+  // --- RF-16: Favoritos en Recetas ---
+  Future<bool> isFavorite(String mealId) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool('fav_$mealId') ?? false;
+  }
+
+  Future<void> toggleFavorite(String mealId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final current = prefs.getBool('fav_$mealId') ?? false;
+    await prefs.setBool('fav_$mealId', !current);
+    notifyListeners(); // Forzar actualización de UI en las tarjetas
   }
 }
