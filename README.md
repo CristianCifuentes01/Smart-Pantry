@@ -1,7 +1,7 @@
 # Smart Pantry 🍎
 
 ![Smart Pantry Banner](https://raw.githubusercontent.com/CristianCifuentes01/Smart-Pantry/main/assets/banner.png)
-*(Nota: Asegúrate de subir la imagen del banner a una carpeta `assets/` en tu repo y actualizar este link)*
+**
 
 Smart Pantry es una solución móvil integral diseñada para modernizar la forma en que gestionamos nuestros alimentos. Utilizando tecnologías de vanguardia, la aplicación permite un control preciso del inventario, previene el desperdicio y fomenta una alimentación creativa basada en los recursos disponibles.
 
