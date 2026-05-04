@@ -38,7 +38,7 @@ class _RegisterViewState extends State<RegisterView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.person_add_alt_1, size: 80, color: Colors.green),
+              Image.asset('assets/images/logo.png', height: 150),
               const SizedBox(height: 30),
 
               // Campo de Nombre

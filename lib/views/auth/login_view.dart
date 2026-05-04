@@ -43,7 +43,7 @@ class _LoginViewState extends State<LoginView> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.lock_outline, size: 80, color: Colors.green),
+              Image.asset('assets/images/logo.png', height: 150),
               const SizedBox(height: 30),
 
               // Campo de Correo

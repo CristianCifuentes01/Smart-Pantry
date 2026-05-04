@@ -24,7 +24,7 @@ La aplicación está construida sobre un stack moderno y escalable:
 
 ## 🏗️ Arquitectura del Proyecto
 
-Implementamos el patrón **MVVM (Model-View-ViewModel)** para garantizar una separación clara de responsabilidades:
+Implementamos el patrón **Modelo-Vista-Modelo de vista (MVVM)** para garantizar una separación clara de responsabilidades:
 
 ```text
 lib/
