@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/product_model.dart';
 import '../../viewmodels/inventory_viewmodel.dart';
 import '../../core/utils/product_utils.dart';
@@ -35,20 +36,39 @@ class _ProductDetailViewState extends State<ProductDetailView> {
   @override
   Widget build(BuildContext context) {
     final statusColor = ProductUtils.getStatusColor(_expiryDate);
-    final daysLeft = _expiryDate.difference(DateTime.now()).inDays;
-    String statusText = daysLeft < 0 ? 'Vencido' : 'Fresco';
-    if (daysLeft >= 0 && daysLeft <= 2) {
-      statusText = 'Crítico';
-    } else if (daysLeft > 2 && daysLeft <= 5) {
-      statusText = 'Atención';
-    }
+    final statusText = ProductUtils.getStatusText(_expiryDate);
+    final daysText = ProductUtils.getDaysLeftText(_expiryDate);
 
     return Scaffold(
       appBar: AppBar(
         title: const Text('Detalle de Producto'),
+        leading: IconButton(
+          icon: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(AppRadius.card),
+              border: Border.all(color: AppColors.divider),
+            ),
+            child: const Icon(Icons.arrow_back_ios_new, size: 16),
+          ),
+          onPressed: () => Navigator.pop(context),
+        ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.delete, color: Colors.redAccent),
+            icon: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: AppColors.urgent.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(color: AppColors.urgent.withOpacity(0.3)),
+              ),
+              child: const Icon(
+                Icons.delete_outline,
+                color: AppColors.urgent,
+                size: 18,
+              ),
+            ),
             onPressed: _confirmDelete,
           ),
         ],
@@ -58,51 +78,144 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // ── Imagen del producto ──
             Center(
-              child: widget.product.imageUrl.isNotEmpty
-                  ? ClipRRect(
-                      borderRadius: BorderRadius.circular(15),
-                      child: Image.network(
-                        widget.product.imageUrl,
-                        height: 200,
-                        width: 200,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, err, stack) =>
-                            const Icon(Icons.fastfood, size: 100),
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(16),
+                  border: Border.all(color: AppColors.divider),
+                  boxShadow: [
+                    BoxShadow(
+                      color: statusColor.withOpacity(0.1),
+                      blurRadius: 20,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: widget.product.imageUrl.isNotEmpty
+                    ? ClipRRect(
+                        borderRadius: BorderRadius.circular(15),
+                        child: Image.network(
+                          widget.product.imageUrl,
+                          height: 180,
+                          width: 180,
+                          fit: BoxFit.cover,
+                          errorBuilder: (ctx, err, stack) => const Icon(
+                            Icons.fastfood,
+                            size: 64,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      )
+                    : const Icon(
+                        Icons.fastfood,
+                        size: 64,
+                        color: AppColors.textSecondary,
                       ),
-                    )
-                  : const Icon(Icons.fastfood, size: 100),
+              ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 24),
+
+            // ── Nombre del producto (editable) ──
+            Text(
+              'Nombre del Producto',
+              style: Theme.of(context).textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
             TextField(
               controller: _nameController,
+              style: const TextStyle(color: AppColors.textPrimary, fontSize: 16),
               decoration: const InputDecoration(
-                labelText: 'Nombre del Producto',
-                border: OutlineInputBorder(),
+                prefixIcon: Icon(Icons.edit_outlined),
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // ── Tarjeta de Estado ──
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: statusColor.withOpacity(0.08),
+                borderRadius: BorderRadius.circular(AppRadius.card),
+                border: Border.all(color: statusColor.withOpacity(0.2)),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: statusColor.withOpacity(0.15),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                    ),
+                    child: Icon(
+                      statusText == 'Fresco'
+                          ? Icons.check_circle_outline
+                          : statusText == 'Atención'
+                              ? Icons.visibility_outlined
+                              : Icons.warning_amber_rounded,
+                      color: statusColor,
+                      size: 24,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          statusText,
+                          style: TextStyle(
+                            color: statusColor,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 16,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          daysText,
+                          style: const TextStyle(
+                            color: AppColors.textSecondary,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: statusColor,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: statusColor.withOpacity(0.4),
+                          blurRadius: 6,
+                          spreadRadius: 1,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Estado',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text('$statusText ($daysLeft días)'),
-              trailing: CircleAvatar(backgroundColor: statusColor, radius: 10),
-            ),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Fecha de Vencimiento',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(DateFormat('dd MMM yyyy').format(_expiryDate)),
+
+            // ── Info Cards ──
+            _buildInfoTile(
+              icon: Icons.calendar_today_outlined,
+              title: 'Fecha de Vencimiento',
+              value: DateFormat('dd MMM yyyy').format(_expiryDate),
               trailing: IconButton(
-                icon: const Icon(Icons.edit_calendar, color: Colors.green),
+                icon: const Icon(Icons.edit_calendar, color: AppColors.primary, size: 22),
                 onPressed: () async {
                   final picked = await showDatePicker(
                     context: context,
                     initialDate: _expiryDate,
-                    firstDate:
-                        DateTime.now().subtract(const Duration(days: 365)),
+                    firstDate: DateTime.now().subtract(const Duration(days: 365)),
                     lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
                   );
                   if (picked != null) {
@@ -113,63 +226,100 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 },
               ),
             ),
-            const Divider(),
-            ListTile(
-              contentPadding: EdgeInsets.zero,
-              title: const Text('Código de Barras',
-                  style: TextStyle(fontWeight: FontWeight.bold)),
-              subtitle: Text(widget.product.barcode.isEmpty
-                  ? 'N/A'
-                  : widget.product.barcode),
-              trailing: const Icon(Icons.qr_code),
+            const SizedBox(height: 12),
+
+            _buildInfoTile(
+              icon: Icons.qr_code,
+              title: 'Código de Barras',
+              value: widget.product.barcode.isEmpty ? 'N/A' : widget.product.barcode,
             ),
-            const SizedBox(height: 30),
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton.icon(
-                onPressed: _saveChanges,
-                icon: const Icon(Icons.save),
-                label: const Text('GUARDAR CAMBIOS',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                ),
+
+            const SizedBox(height: 32),
+
+            // ── Botón Guardar ──
+            ElevatedButton.icon(
+              onPressed: _saveChanges,
+              icon: const Icon(Icons.save_outlined),
+              label: const Text(
+                'GUARDAR CAMBIOS',
+                style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 12),
+
             // RF-12: Probar la notificación individual
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: OutlinedButton.icon(
-                onPressed: () async {
-                  await NotificationService()
-                      .showInstantTestNotification(_nameController.text);
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Notificación de prueba enviada'),
-                        duration: Duration(seconds: 2),
-                      ),
-                    );
-                  }
-                },
-                icon: const Icon(Icons.notifications_active),
-                label: const Text('PROBAR ALERTA'),
-                style: OutlinedButton.styleFrom(
-                  foregroundColor: Colors.green,
-                  side: const BorderSide(color: Colors.green),
-                  shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10)),
+            OutlinedButton.icon(
+              onPressed: () async {
+                await NotificationService()
+                    .showInstantTestNotification(_nameController.text);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Notificación de prueba enviada'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.notifications_active_outlined),
+              label: const Text('PROBAR ALERTA'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: AppColors.primary,
+                side: const BorderSide(color: AppColors.primary, width: 1),
+                minimumSize: const Size(double.infinity, 50),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(AppRadius.button),
                 ),
               ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInfoTile({
+    required IconData icon,
+    required String title,
+    required String value,
+    Widget? trailing,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: AppColors.textSecondary, size: 20),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 12,
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
+        ],
       ),
     );
   }
@@ -186,7 +336,10 @@ class _ProductDetailViewState extends State<ProductDetailView> {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.urgent,
+              foregroundColor: Colors.white,
+            ),
             onPressed: () async {
               Navigator.pop(ctx); // Cierra diálogo
               try {
@@ -197,20 +350,19 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                         content: Text('Producto eliminado'),
-                        backgroundColor: Colors.redAccent),
+                        backgroundColor: AppColors.urgent),
                   );
                 }
               } catch (e) {
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
-                        content: Text('Error: $e'), backgroundColor: Colors.red),
+                        content: Text('Error: $e'), backgroundColor: AppColors.urgent),
                   );
                 }
               }
             },
-            child:
-                const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
@@ -237,14 +389,14 @@ class _ProductDetailViewState extends State<ProductDetailView> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
               content: Text('Producto actualizado'),
-              backgroundColor: Colors.green),
+              backgroundColor: AppColors.safe),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Error: $e'), backgroundColor: Colors.red),
+              content: Text('Error: $e'), backgroundColor: AppColors.urgent),
         );
       }
     }

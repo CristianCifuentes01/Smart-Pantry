@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../viewmodels/inventory_viewmodel.dart';
 import '../../core/utils/product_utils.dart';
 import '../scanner/scanner_view.dart';
@@ -25,7 +26,15 @@ class _HomeViewState extends State<HomeView> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Mi Despensa')),
+      appBar: AppBar(
+        title: const Text('Mi Despensa'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.notifications_outlined),
+            onPressed: () {},
+          ),
+        ],
+      ),
       body: Consumer<InventoryViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
@@ -34,114 +43,225 @@ class _HomeViewState extends State<HomeView> {
 
           return Column(
             children: [
-              // --- RF-04 CONTADORES DASHBOARD ---
+              // ── RF-04 CONTADORES DASHBOARD (Semáforo) ──
               Padding(
-                padding: const EdgeInsets.all(10.0),
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildCounter('Urgente', viewModel.urgentCount, Colors.red),
-                    _buildCounter('Vigilancia', viewModel.watchCount, Colors.orange),
-                    _buildCounter('Fresco', viewModel.freshCount, Colors.green),
+                    Expanded(
+                      child: _buildCounter(
+                        'Urgente',
+                        viewModel.urgentCount,
+                        AppColors.urgent,
+                        Icons.warning_amber_rounded,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildCounter(
+                        'Vigilancia',
+                        viewModel.watchCount,
+                        AppColors.warning,
+                        Icons.visibility_outlined,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildCounter(
+                        'Fresco',
+                        viewModel.freshCount,
+                        AppColors.safe,
+                        Icons.check_circle_outline,
+                      ),
+                    ),
                   ],
                 ),
               ),
 
-              // --- RF-06 FILTROS DE ORDENAMIENTO ---
+              const SizedBox(height: 8),
+
+              // ── RF-06 FILTROS DE ORDENAMIENTO ──
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
+                    Text(
                       'Inventario',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                      style: Theme.of(context).textTheme.titleLarge,
                     ),
-                    DropdownButton<SortType>(
-                      value: viewModel.currentSort,
-                      icon: const Icon(Icons.sort),
-                      underline: Container(), // Sin línea debajo
-                      onChanged: (SortType? newValue) {
-                        if (newValue != null) {
-                          viewModel.setSortType(newValue);
-                        }
-                      },
-                      items: const [
-                        DropdownMenuItem(
-                          value: SortType.dateAsc,
-                          child: Text('Vencimiento'),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(color: AppColors.divider),
+                      ),
+                      child: DropdownButtonHideUnderline(
+                        child: DropdownButton<SortType>(
+                          value: viewModel.currentSort,
+                          icon: const Icon(Icons.sort, size: 18, color: AppColors.primary),
+                          dropdownColor: AppColors.surface,
+                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontSize: 13),
+                          onChanged: (SortType? newValue) {
+                            if (newValue != null) {
+                              viewModel.setSortType(newValue);
+                            }
+                          },
+                          items: const [
+                            DropdownMenuItem(
+                              value: SortType.dateAsc,
+                              child: Text('Vencimiento'),
+                            ),
+                            DropdownMenuItem(
+                              value: SortType.nameAsc,
+                              child: Text('Nombre (A-Z)'),
+                            ),
+                            DropdownMenuItem(
+                              value: SortType.entryDateDesc,
+                              child: Text('Recientes'),
+                            ),
+                          ],
                         ),
-                        DropdownMenuItem(
-                          value: SortType.nameAsc,
-                          child: Text('Nombre (A-Z)'),
-                        ),
-                        DropdownMenuItem(
-                          value: SortType.entryDateDesc,
-                          child: Text('Recientes'),
-                        ),
-                      ],
+                      ),
                     ),
                   ],
                 ),
               ),
-              const Divider(height: 1),
 
-              // --- LISTA DE PRODUCTOS ---
+              const SizedBox(height: 4),
+
+              // ── LISTA DE PRODUCTOS ──
               Expanded(
                 child: viewModel.products.isEmpty
-                    ? const Center(
-                        child: Text('Tu despensa está vacía. ¡Escanea algo!'),
-                      )
+                    ? _buildEmptyState()
                     : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                         itemCount: viewModel.products.length,
                         itemBuilder: (context, index) {
                           final product = viewModel.products[index];
-                          final statusColor = ProductUtils.getStatusColor(
-                            product.expiryDate,
-                          );
-                          final formattedDate = DateFormat(
-                            'dd MMM yyyy',
-                          ).format(product.expiryDate);
+                          final statusColor = ProductUtils.getStatusColor(product.expiryDate);
+                          final statusText = ProductUtils.getStatusText(product.expiryDate);
+                          final daysText = ProductUtils.getDaysLeftText(product.expiryDate);
+                          final formattedDate = DateFormat('dd MMM yyyy').format(product.expiryDate);
 
-                          return Card(
-                            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                            shape: RoundedRectangleBorder(
-                              side: BorderSide(color: statusColor, width: 2),
-                              borderRadius: BorderRadius.circular(10),
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 10),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(AppRadius.card),
+                              border: Border.all(
+                                color: statusColor.withOpacity(0.3),
+                                width: 1,
+                              ),
                             ),
-                            child: ListTile(
-                              leading: product.imageUrl.isNotEmpty
-                                  ? ClipRRect(
-                                      borderRadius: BorderRadius.circular(8),
-                                      child: Image.network(
-                                        product.imageUrl,
-                                        width: 50,
-                                        height: 50,
-                                        fit: BoxFit.cover,
-                                        errorBuilder: (_, __, ___) => const Icon(Icons.fastfood, size: 50),
-                                      ),
-                                    )
-                                  : const Icon(Icons.fastfood, size: 50),
-                              title: Text(
-                                product.name,
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              subtitle: Text(
-                                'Vence: $formattedDate\nCódigo: ${product.barcode}',
-                              ),
-                              onTap: () {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => ProductDetailView(product: product),
-                                  ),
-                                );
-                              },
-                              trailing: IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () {
-                                  _confirmDelete(context, viewModel, product);
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(AppRadius.card),
+                                onTap: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) => ProductDetailView(product: product),
+                                    ),
+                                  );
                                 },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(12),
+                                  child: Row(
+                                    children: [
+                                      // Imagen del producto
+                                      Container(
+                                        width: 56,
+                                        height: 56,
+                                        decoration: BoxDecoration(
+                                          color: AppColors.surfaceAccent,
+                                          borderRadius: BorderRadius.circular(AppRadius.card),
+                                        ),
+                                        child: product.imageUrl.isNotEmpty
+                                            ? ClipRRect(
+                                                borderRadius: BorderRadius.circular(AppRadius.card),
+                                                child: Image.network(
+                                                  product.imageUrl,
+                                                  width: 56,
+                                                  height: 56,
+                                                  fit: BoxFit.cover,
+                                                  errorBuilder: (_, __, ___) => const Icon(
+                                                    Icons.fastfood,
+                                                    color: AppColors.textSecondary,
+                                                    size: 28,
+                                                  ),
+                                                ),
+                                              )
+                                            : const Icon(
+                                                Icons.fastfood,
+                                                color: AppColors.textSecondary,
+                                                size: 28,
+                                              ),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      // Info del producto
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              product.name,
+                                              style: const TextStyle(
+                                                fontWeight: FontWeight.w600,
+                                                fontSize: 15,
+                                                color: AppColors.textPrimary,
+                                              ),
+                                              maxLines: 1,
+                                              overflow: TextOverflow.ellipsis,
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              'Vence: $formattedDate',
+                                              style: const TextStyle(
+                                                fontSize: 12,
+                                                color: AppColors.textSecondary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      // Tag de expiración (píldora semáforo)
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 10,
+                                          vertical: 5,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: statusColor.withOpacity(0.15),
+                                          borderRadius: BorderRadius.circular(AppRadius.chip),
+                                        ),
+                                        child: Text(
+                                          daysText,
+                                          style: TextStyle(
+                                            color: statusColor,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      // Botón eliminar
+                                      IconButton(
+                                        icon: Icon(
+                                          Icons.delete_outline,
+                                          color: AppColors.urgent.withOpacity(0.7),
+                                          size: 20,
+                                        ),
+                                        onPressed: () {
+                                          _confirmDelete(context, viewModel, product);
+                                        },
+                                        visualDensity: VisualDensity.compact,
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ),
                           );
@@ -160,36 +280,80 @@ class _HomeViewState extends State<HomeView> {
           );
         },
         icon: const Icon(Icons.qr_code_scanner),
-        label: const Text('Escanear'),
+        label: const Text(
+          'Escanear',
+          style: TextStyle(fontWeight: FontWeight.w700),
+        ),
       ),
     );
   }
 
-  Widget _buildCounter(String label, int count, Color color) {
+  Widget _buildCounter(String label, int count, Color color, IconData icon) {
     return Container(
-      width: 100,
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: color.withOpacity(0.5)),
+        color: color.withOpacity(0.08),
+        borderRadius: BorderRadius.circular(AppRadius.card),
+        border: Border.all(color: color.withOpacity(0.2)),
       ),
       child: Column(
         children: [
+          Icon(icon, color: color, size: 20),
+          const SizedBox(height: 6),
           Text(
             count.toString(),
             style: TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
               color: color,
             ),
           ),
+          const SizedBox(height: 2),
           Text(
             label,
             style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
               color: color.withOpacity(0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.kitchen_outlined,
+              size: 64,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
+            'Tu despensa está vacía',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '¡Escanea un producto para empezar!',
+            style: TextStyle(
+              fontSize: 14,
+              color: AppColors.textSecondary,
             ),
           ),
         ],
@@ -212,7 +376,8 @@ class _HomeViewState extends State<HomeView> {
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red,
+              backgroundColor: AppColors.urgent,
+              foregroundColor: Colors.white,
             ),
             onPressed: () async {
               try {
@@ -222,7 +387,7 @@ class _HomeViewState extends State<HomeView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     const SnackBar(
                       content: Text('Producto consumido y eliminado'),
-                      backgroundColor: Colors.green,
+                      backgroundColor: AppColors.safe,
                     ),
                   );
                 }
@@ -232,16 +397,13 @@ class _HomeViewState extends State<HomeView> {
                   ScaffoldMessenger.of(context).showSnackBar(
                     SnackBar(
                       content: Text('Error al eliminar: $e'),
-                      backgroundColor: Colors.red,
+                      backgroundColor: AppColors.urgent,
                     ),
                   );
                 }
               }
             },
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: Colors.white),
-            ),
+            child: const Text('Eliminar'),
           ),
         ],
       ),

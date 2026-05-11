@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart'; // Para leer el estado de sesión
+import 'core/theme/app_theme.dart';
 import 'viewmodels/auth_viewmodel.dart';
 import 'views/auth/login_view.dart';
 import 'viewmodels/inventory_viewmodel.dart';
@@ -16,6 +18,14 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp();
   await NotificationService().init();
+
+  // Forzar barra de estado transparente para integración visual con dark mode
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    statusBarColor: Colors.transparent,
+    statusBarIconBrightness: Brightness.light,
+    systemNavigationBarColor: AppColors.surface,
+    systemNavigationBarIconBrightness: Brightness.light,
+  ));
 
   runApp(const MyApp());
 }
@@ -36,15 +46,17 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'SmartPantry',
-        theme: ThemeData(primarySwatch: Colors.green, useMaterial3: true),
-        // Aquí usamos StreamBuilder para escuchar cambios de sesión en tiempo real
+        theme: AppTheme.darkTheme,
+        // Restauramos el StreamBuilder para escuchar el estado de sesión al instante
         home: StreamBuilder<User?>(
           stream: FirebaseAuth.instance.authStateChanges(),
           builder: (context, snapshot) {
             // Mientras lee los datos de caché
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Scaffold(
-                body: Center(child: CircularProgressIndicator()),
+                body: Center(
+                  child: CircularProgressIndicator(),
+                ),
               );
             }
             // Si el snapshot tiene un usuario guardado:

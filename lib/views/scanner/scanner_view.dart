@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../viewmodels/scanner_viewmodel.dart';
 import 'package:intl/intl.dart';
 
@@ -29,18 +30,39 @@ class _ScannerViewState extends State<ScannerView> {
         return Scaffold(
           appBar: AppBar(
             title: const Text('Escanear Producto'),
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new, size: 16),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
             actions: [
-              IconButton(
-                icon: Icon(viewModel.manualEntryMode ? Icons.qr_code : Icons.edit),
-                onPressed: () {
-                  viewModel.toggleManualEntry();
-                  if (viewModel.manualEntryMode) {
-                    _controller.stop();
-                    _showAddProductSheet(context, viewModel, isManual: true);
-                  } else {
-                    _controller.start();
-                  }
-                },
+              Container(
+                margin: const EdgeInsets.only(right: 12),
+                decoration: BoxDecoration(
+                  color: AppColors.surface.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                ),
+                child: IconButton(
+                  icon: Icon(
+                    viewModel.manualEntryMode ? Icons.qr_code : Icons.edit_outlined,
+                    color: AppColors.primary,
+                  ),
+                  onPressed: () {
+                    viewModel.toggleManualEntry();
+                    if (viewModel.manualEntryMode) {
+                      _controller.stop();
+                      _showAddProductSheet(context, viewModel, isManual: true);
+                    } else {
+                      _controller.start();
+                    }
+                  },
+                ),
               ),
             ],
           ),
@@ -65,22 +87,58 @@ class _ScannerViewState extends State<ScannerView> {
                   }
                 },
               ),
-              // Guía visual del scanner
+              // ── Guía visual del scanner ──
               Center(
                 child: Container(
-                  width: 250,
-                  height: 250,
+                  width: 260,
+                  height: 260,
                   decoration: BoxDecoration(
-                    border: Border.all(color: Colors.green, width: 4),
-                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: AppColors.primary, width: 3),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.1),
+                        blurRadius: 20,
+                        spreadRadius: 4,
+                      ),
+                    ],
+                  ),
+                  child: Stack(
+                    children: [
+                      // Esquinas decorativas
+                      ..._buildCornerDecorations(),
+                    ],
+                  ),
+                ),
+              ),
+              // Texto guía debajo del marco
+              Positioned(
+                bottom: 100,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: AppColors.background.withOpacity(0.8),
+                      borderRadius: BorderRadius.circular(AppRadius.chip),
+                    ),
+                    child: const Text(
+                      'Apunta al código de barras',
+                      style: TextStyle(
+                        color: AppColors.textPrimary,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ),
                 ),
               ),
               if (viewModel.isLoading)
                 Container(
-                  color: Colors.black54,
+                  color: AppColors.background.withOpacity(0.7),
                   child: const Center(
-                    child: CircularProgressIndicator(color: Colors.green),
+                    child: CircularProgressIndicator(),
                   ),
                 ),
             ],
@@ -88,6 +146,51 @@ class _ScannerViewState extends State<ScannerView> {
         );
       },
     );
+  }
+
+  List<Widget> _buildCornerDecorations() {
+    const cornerSize = 24.0;
+    const cornerWidth = 4.0;
+    const color = AppColors.primary;
+
+    return [
+      // Top-left
+      Positioned(
+        top: -2, left: -2,
+        child: Container(width: cornerSize, height: cornerWidth, color: color),
+      ),
+      Positioned(
+        top: -2, left: -2,
+        child: Container(width: cornerWidth, height: cornerSize, color: color),
+      ),
+      // Top-right
+      Positioned(
+        top: -2, right: -2,
+        child: Container(width: cornerSize, height: cornerWidth, color: color),
+      ),
+      Positioned(
+        top: -2, right: -2,
+        child: Container(width: cornerWidth, height: cornerSize, color: color),
+      ),
+      // Bottom-left
+      Positioned(
+        bottom: -2, left: -2,
+        child: Container(width: cornerSize, height: cornerWidth, color: color),
+      ),
+      Positioned(
+        bottom: -2, left: -2,
+        child: Container(width: cornerWidth, height: cornerSize, color: color),
+      ),
+      // Bottom-right
+      Positioned(
+        bottom: -2, right: -2,
+        child: Container(width: cornerSize, height: cornerWidth, color: color),
+      ),
+      Positioned(
+        bottom: -2, right: -2,
+        child: Container(width: cornerWidth, height: cornerSize, color: color),
+      ),
+    ];
   }
 
   void _showAddProductSheet(BuildContext context, ScannerViewModel viewModel, {bool isManual = false}) {
@@ -102,8 +205,9 @@ class _ScannerViewState extends State<ScannerView> {
       context: context,
       isScrollControlled: true,
       isDismissible: false, // Evitar cerrar por accidente y que la cámara quede pausada
+      backgroundColor: AppColors.background,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (context) {
         return Padding(
@@ -111,52 +215,85 @@ class _ScannerViewState extends State<ScannerView> {
             bottom: MediaQuery.of(context).viewInsets.bottom,
             left: 20,
             right: 20,
-            top: 20,
+            top: 16,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ── Handle ──
               Center(
                 child: Container(
                   width: 40,
                   height: 4,
                   decoration: BoxDecoration(
-                    color: Colors.grey[300],
+                    color: AppColors.divider,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               ),
               const SizedBox(height: 20),
+
+              // ── Título ──
               Text(
                 isManual ? 'Agregar Manualmente' : 'Producto Detectado',
-                style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.textPrimary,
+                ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
+
+              // ── Imagen del producto (si se detectó) ──
               if (!isManual && viewModel.scannedData?['image'] != null && viewModel.scannedData?['image'] != '')
                 Center(
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: Image.network(
-                      viewModel.scannedData!['image'],
-                      height: 120,
-                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.fastfood, size: 100),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(11),
+                      child: Image.network(
+                        viewModel.scannedData!['image'],
+                        height: 120,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          height: 120,
+                          width: 120,
+                          color: AppColors.surface,
+                          child: const Icon(Icons.fastfood, size: 48, color: AppColors.textSecondary),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 18),
+
+              // ── Campo nombre ──
+              Text(
+                'Nombre del Producto',
+                style: Theme.of(context).textTheme.labelLarge,
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: _nameController,
+                style: const TextStyle(color: AppColors.textPrimary),
                 decoration: const InputDecoration(
-                  labelText: 'Nombre del Producto',
-                  border: OutlineInputBorder(),
-                  prefixIcon: Icon(Icons.shopping_basket),
+                  hintText: 'Ej: Leche entera',
+                  prefixIcon: Icon(Icons.shopping_basket_outlined),
                 ),
               ),
               const SizedBox(height: 20),
+
+              // ── Fecha de Vencimiento ──
               const Text(
-                'Fecha de Vencimiento:',
-                style: TextStyle(fontWeight: FontWeight.bold),
+                'Fecha de Vencimiento',
+                style: TextStyle(
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                  fontSize: 14,
+                ),
               ),
               const SizedBox(height: 10),
               // Botones de selección rápida (RF-09)
@@ -170,19 +307,23 @@ class _ScannerViewState extends State<ScannerView> {
                     const SizedBox(width: 8),
                     _quickDateButton(context, viewModel, '2 semanas', 14),
                     const SizedBox(width: 8),
-                    IconButton(
-                      onPressed: () async {
-                        final date = await showDatePicker(
-                          context: context,
-                          initialDate: DateTime.now().add(const Duration(days: 7)),
-                          firstDate: DateTime.now(),
-                          lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                        );
-                        if (date != null) viewModel.setSelectedDate(date);
-                      },
-                      icon: const Icon(Icons.calendar_month, color: Colors.green),
-                      style: IconButton.styleFrom(
-                        backgroundColor: Colors.green.withOpacity(0.1),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.primary.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                      ),
+                      child: IconButton(
+                        onPressed: () async {
+                          final date = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now().add(const Duration(days: 7)),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                          );
+                          if (date != null) viewModel.setSelectedDate(date);
+                        },
+                        icon: const Icon(Icons.calendar_month, color: AppColors.primary, size: 22),
                       ),
                     ),
                   ],
@@ -191,12 +332,25 @@ class _ScannerViewState extends State<ScannerView> {
               if (viewModel.selectedDate != null)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Text(
-                    'Seleccionado: ${DateFormat('dd/MM/yyyy').format(viewModel.selectedDate!)}',
-                    style: const TextStyle(color: Colors.green, fontWeight: FontWeight.bold),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.primary.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.chip),
+                    ),
+                    child: Text(
+                      '📅 ${DateFormat('dd/MM/yyyy').format(viewModel.selectedDate!)}',
+                      style: const TextStyle(
+                        color: AppColors.primary,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 14,
+                      ),
+                    ),
                   ),
                 ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 24),
+
+              // ── Botones de acción ──
               Row(
                 children: [
                   Expanded(
@@ -206,10 +360,13 @@ class _ScannerViewState extends State<ScannerView> {
                         viewModel.reset();
                         _controller.start();
                       },
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size(0, 48),
+                      ),
                       child: const Text('CANCELAR'),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
                   Expanded(
                     flex: 2,
                     child: ElevatedButton(
@@ -227,20 +384,21 @@ class _ScannerViewState extends State<ScannerView> {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   const SnackBar(
                                     content: Text('¡Producto agregado con éxito!'),
-                                    backgroundColor: Colors.green,
+                                    backgroundColor: AppColors.safe,
                                   ),
                                 );
                                 viewModel.reset();
                               }
                             },
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.green,
-                        foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
-                        ),
+                        minimumSize: const Size(0, 48),
+                        disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
+                        disabledForegroundColor: AppColors.background.withOpacity(0.5),
                       ),
-                      child: const Text('GUARDAR', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      child: const Text(
+                        'GUARDAR',
+                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                      ),
                     ),
                   ),
                 ],
@@ -265,13 +423,27 @@ class _ScannerViewState extends State<ScannerView> {
         viewModel.selectedDate!.day == DateTime.now().add(Duration(days: days)).day;
 
     return ChoiceChip(
-      label: Text(label),
+      label: Text(
+        label,
+        style: TextStyle(
+          color: isSelected ? AppColors.background : AppColors.textPrimary,
+          fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+          fontSize: 13,
+        ),
+      ),
       selected: isSelected,
       onSelected: (bool selected) {
         if (selected) viewModel.setQuickExpiry(days);
       },
-      selectedColor: Colors.green.withOpacity(0.2),
-      checkmarkColor: Colors.green,
+      selectedColor: AppColors.primary,
+      backgroundColor: AppColors.surface,
+      side: BorderSide(
+        color: isSelected ? AppColors.primary : AppColors.divider,
+      ),
+      checkmarkColor: AppColors.background,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+      ),
     );
   }
 }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/models/product_model.dart';
 import '../data/repositories/inventory_repository.dart';
+import '../core/theme/app_theme.dart';
 
 enum SortType { dateAsc, nameAsc, entryDateDesc }
 
@@ -36,10 +37,10 @@ class InventoryViewModel extends ChangeNotifier {
   // Lógica del Semáforo (Tu requerimiento clave)
   Color getStatusColor(DateTime expiryDate) {
     final daysLeft = expiryDate.difference(DateTime.now()).inDays;
-    if (daysLeft < 0) return Colors.red;        // Vencido
-    if (daysLeft <= 2) return Colors.orange;    // Crítico
-    if (daysLeft <= 5) return Colors.yellow;    // Atención
-    return Colors.green;                        // Fresco
+    if (daysLeft < 0) return AppColors.urgent;    // Vencido
+    if (daysLeft <= 2) return AppColors.urgent;    // Crítico
+    if (daysLeft <= 5) return AppColors.warning;   // Atención
+    return AppColors.safe;                         // Fresco
   }
   
   // Método para eliminar un producto

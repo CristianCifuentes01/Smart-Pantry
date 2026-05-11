@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import '../home/home_view.dart';
 import '../recipes/recipes_view.dart';
 import '../profile/profile_view.dart';
@@ -25,22 +26,37 @@ class _MainViewState extends State<MainView> {
   Widget build(BuildContext context) {
     return Scaffold(
       body: _pages[_currentIndex], // Muestra la pantalla según el índice
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentIndex,
-        selectedItemColor: Colors.green, // Color cuando está activo
-        onTap: (index) {
-          setState(() {
-            _currentIndex = index; // Cambia la pantalla al tocar
-          });
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.kitchen), label: 'Despensa'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.restaurant_menu),
-            label: 'Recetas',
+      bottomNavigationBar: Container(
+        decoration: const BoxDecoration(
+          border: Border(
+            top: BorderSide(color: AppColors.divider, width: 1),
           ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
-        ],
+        ),
+        child: BottomNavigationBar(
+          currentIndex: _currentIndex,
+          onTap: (index) {
+            setState(() {
+              _currentIndex = index; // Cambia la pantalla al tocar
+            });
+          },
+          items: const [
+            BottomNavigationBarItem(
+              icon: Icon(Icons.kitchen_outlined),
+              activeIcon: Icon(Icons.kitchen),
+              label: 'Despensa',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.restaurant_menu_outlined),
+              activeIcon: Icon(Icons.restaurant_menu),
+              label: 'Recetas',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person),
+              label: 'Perfil',
+            ),
+          ],
+        ),
       ),
     );
   }

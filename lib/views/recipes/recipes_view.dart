@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
 import 'recipe_detail_view.dart';
 
@@ -15,56 +16,58 @@ class RecipesView extends StatelessWidget {
       appBar: AppBar(
         title: const Text('Recetas Inteligentes'),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.auto_awesome, color: Colors.amber),
-            tooltip: 'Sugerir con mi despensa',
-            onPressed: () => viewModel.suggestFromPantry(),
+          Container(
+            margin: const EdgeInsets.only(right: 12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withOpacity(0.1),
+              borderRadius: BorderRadius.circular(AppRadius.card),
+            ),
+            child: IconButton(
+              icon: const Icon(Icons.auto_awesome, color: AppColors.primary),
+              tooltip: 'Sugerir con mi despensa',
+              onPressed: () => viewModel.suggestFromPantry(),
+            ),
           ),
         ],
       ),
       body: Column(
         children: [
-          // Barra de búsqueda con estilo premium
+          // ── Barra de búsqueda ──
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.grey[200],
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: TextField(
-                controller: searchController,
-                onSubmitted: (value) => viewModel.searchRecipes(value),
-                decoration: InputDecoration(
-                  hintText: 'Buscar por ingrediente (en inglés)...',
-                  prefixIcon: const Icon(Icons.search),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: () => viewModel.searchRecipes(searchController.text),
-                  ),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+            child: TextField(
+              controller: searchController,
+              onSubmitted: (value) => viewModel.searchRecipes(value),
+              style: const TextStyle(color: AppColors.textPrimary),
+              decoration: InputDecoration(
+                hintText: 'Buscar por ingrediente (en inglés)...',
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: IconButton(
+                  icon: const Icon(Icons.send, color: AppColors.primary, size: 20),
+                  onPressed: () => viewModel.searchRecipes(searchController.text),
                 ),
               ),
             ),
           ),
-          
+
           if (viewModel.recipes.isNotEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16.0),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16.0),
               child: Align(
                 alignment: Alignment.centerLeft,
                 child: Text(
                   'Sugerencias para ti',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  style: Theme.of(context).textTheme.titleLarge,
                 ),
               ),
             ),
 
-          // Lista de resultados
+          const SizedBox(height: 8),
+
+          // ── Lista de resultados ──
           Expanded(
             child: viewModel.isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.green))
+                ? const Center(child: CircularProgressIndicator())
                 : viewModel.recipes.isEmpty
                     ? _buildEmptyState()
                     : ListView.builder(
@@ -86,19 +89,37 @@ class RecipesView extends StatelessWidget {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(Icons.restaurant_menu, size: 80, color: Colors.grey[300]),
-          const SizedBox(height: 16),
-          Text(
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: const BoxDecoration(
+              color: AppColors.surface,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.restaurant_menu_outlined,
+              size: 64,
+              color: AppColors.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 20),
+          const Text(
             '¿No sabes qué cocinar?',
-            style: TextStyle(fontSize: 18, color: Colors.grey[600], fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textPrimary,
+            ),
           ),
           const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 40),
+          const Padding(
+            padding: EdgeInsets.symmetric(horizontal: 40),
             child: Text(
-              'Usa el botón ✨ arriba para buscar recetas con lo que tienes en tu despensa.',
+              'Usa el botón ✨ arriba para buscar recetas\ncon lo que tienes en tu despensa.',
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[500]),
+              style: TextStyle(
+                color: AppColors.textSecondary,
+                fontSize: 13,
+              ),
             ),
           ),
         ],
@@ -107,80 +128,124 @@ class RecipesView extends StatelessWidget {
   }
 
   Widget _buildRecipeCard(BuildContext context, RecipesViewModel viewModel, recipe) {
-    return Card(
-      elevation: 4,
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-      child: InkWell(
-        onTap: () => _openRecipeDetail(context, viewModel, recipe.id),
-        borderRadius: BorderRadius.circular(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(15)),
-                  child: Image.network(
-                    recipe.imageUrl,
-                    height: 150,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (c, e, s) => Container(
-                      height: 150,
-                      color: Colors.grey[200],
-                      child: const Icon(Icons.fastfood, size: 50),
-                    ),
-                  ),
-                ),
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: FutureBuilder<bool>(
-                    future: viewModel.isFavorite(recipe.id),
-                    builder: (context, snapshot) {
-                      final isFav = snapshot.data ?? false;
-                      return CircleAvatar(
-                        backgroundColor: Colors.white,
-                        child: IconButton(
-                          icon: Icon(
-                            isFav ? Icons.favorite : Icons.favorite_border,
-                            color: isFav ? Colors.red : Colors.grey,
-                          ),
-                          onPressed: () => viewModel.toggleFavorite(recipe.id),
-                        ),
-                      );
-                    },
-                  ),
-                ),
-              ],
-            ),
-            Padding(
-              padding: const EdgeInsets.all(12.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.divider),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _openRecipeDetail(context, viewModel, recipe.id),
+          borderRadius: BorderRadius.circular(12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // ── Imagen ──
+              Stack(
                 children: [
-                  Expanded(
-                    child: Text(
-                      recipe.name,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                    child: Image.network(
+                      recipe.imageUrl,
+                      height: 160,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      errorBuilder: (c, e, s) => Container(
+                        height: 160,
+                        color: AppColors.surfaceAccent,
+                        child: const Center(
+                          child: Icon(
+                            Icons.fastfood,
+                            size: 48,
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                  ElevatedButton(
-                    onPressed: () => _openRecipeDetail(context, viewModel, recipe.id),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green,
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  // Gradiente sobre la imagen para contraste
+                  Positioned.fill(
+                    child: DecoratedBox(
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.transparent,
+                            Colors.black.withOpacity(0.3),
+                          ],
+                        ),
+                      ),
                     ),
-                    child: const Text('Cocinar'),
+                  ),
+                  // Botón de favorito
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: FutureBuilder<bool>(
+                      future: viewModel.isFavorite(recipe.id),
+                      builder: (context, snapshot) {
+                        final isFav = snapshot.data ?? false;
+                        return Container(
+                          decoration: BoxDecoration(
+                            color: AppColors.surface.withOpacity(0.85),
+                            shape: BoxShape.circle,
+                          ),
+                          child: IconButton(
+                            icon: Icon(
+                              isFav ? Icons.favorite : Icons.favorite_border,
+                              color: isFav ? AppColors.urgent : AppColors.textSecondary,
+                              size: 22,
+                            ),
+                            onPressed: () => viewModel.toggleFavorite(recipe.id),
+                            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+                            padding: EdgeInsets.zero,
+                          ),
+                        );
+                      },
+                    ),
                   ),
                 ],
               ),
-            ),
-          ],
+              // ── Info ──
+              Padding(
+                padding: const EdgeInsets.all(14.0),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(
+                      child: Text(
+                        recipe.name,
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textPrimary,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    SizedBox(
+                      height: 36,
+                      child: ElevatedButton(
+                        onPressed: () => _openRecipeDetail(context, viewModel, recipe.id),
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
+                        ),
+                        child: const Text('Cocinar'),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -191,7 +256,7 @@ class RecipesView extends StatelessWidget {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: Colors.green)),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../core/theme/app_theme.dart';
 import '../../data/models/meal_detail_model.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
@@ -14,21 +15,52 @@ class RecipeDetailView extends StatelessWidget {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 250.0,
+            expandedHeight: 260.0,
             pinned: true,
+            backgroundColor: AppColors.background,
+            leading: IconButton(
+              icon: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: AppColors.background.withOpacity(0.7),
+                  borderRadius: BorderRadius.circular(AppRadius.card),
+                ),
+                child: const Icon(Icons.arrow_back_ios_new, size: 16, color: Colors.white),
+              ),
+              onPressed: () => Navigator.pop(context),
+            ),
             flexibleSpace: FlexibleSpaceBar(
               title: Text(
                 recipe.name,
                 style: const TextStyle(
                   color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  shadows: [Shadow(color: Colors.black, blurRadius: 10)],
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                  shadows: [Shadow(color: Colors.black, blurRadius: 12)],
                 ),
               ),
-              background: Image.network(
-                recipe.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (_, __, ___) => const Icon(Icons.fastfood, size: 100),
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  Image.network(
+                    recipe.imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.surface,
+                      child: const Icon(Icons.fastfood, size: 80, color: AppColors.textSecondary),
+                    ),
+                  ),
+                  // Gradiente para legibilidad del título
+                  const DecoratedBox(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment(0, 0.4),
+                        end: Alignment.bottomCenter,
+                        colors: [Colors.transparent, AppColors.background],
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
             actions: [
@@ -38,14 +70,21 @@ class RecipeDetailView extends StatelessWidget {
                     future: viewModel.isFavorite(recipe.id),
                     builder: (context, snapshot) {
                       final isFav = snapshot.data ?? false;
-                      return IconButton(
-                        icon: Icon(
-                          isFav ? Icons.favorite : Icons.favorite_border,
-                          color: isFav ? Colors.red : Colors.white,
+                      return Container(
+                        margin: const EdgeInsets.only(right: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.background.withOpacity(0.7),
+                          shape: BoxShape.circle,
                         ),
-                        onPressed: () {
-                          viewModel.toggleFavorite(recipe.id);
-                        },
+                        child: IconButton(
+                          icon: Icon(
+                            isFav ? Icons.favorite : Icons.favorite_border,
+                            color: isFav ? AppColors.urgent : Colors.white,
+                          ),
+                          onPressed: () {
+                            viewModel.toggleFavorite(recipe.id);
+                          },
+                        ),
                       );
                     },
                   );
@@ -55,54 +94,129 @@ class RecipeDetailView extends StatelessWidget {
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.all(20.0),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // ── Chips de categoría y área ──
                   Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Chip(
-                        label: Text(recipe.category),
-                        backgroundColor: Colors.orange.withOpacity(0.2),
+                      _buildInfoChip(
+                        icon: Icons.category_outlined,
+                        label: recipe.category,
+                        color: AppColors.warning,
                       ),
-                      Chip(
-                        label: Text(recipe.area),
-                        backgroundColor: Colors.blue.withOpacity(0.2),
+                      const SizedBox(width: 10),
+                      _buildInfoChip(
+                        icon: Icons.public,
+                        label: recipe.area,
+                        color: AppColors.primary,
                       ),
                     ],
                   ),
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 28),
+
+                  // ── Ingredientes ──
                   const Text(
                     'Ingredientes',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  const SizedBox(height: 10),
+                  const SizedBox(height: 12),
                   ...recipe.ingredients.map(
-                    (ingredient) => Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 4.0),
+                    (ingredient) => Container(
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: BorderRadius.circular(AppRadius.card),
+                        border: Border.all(color: AppColors.divider),
+                      ),
                       child: Row(
                         children: [
-                          const Icon(Icons.check_circle_outline, color: Colors.green, size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(child: Text(ingredient, style: const TextStyle(fontSize: 16))),
+                          const Icon(
+                            Icons.check_circle,
+                            color: AppColors.safe,
+                            size: 18,
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              ingredient,
+                              style: const TextStyle(
+                                fontSize: 14,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 28),
+
+                  // ── Instrucciones ──
                   const Text(
                     'Instrucciones',
-                    style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
                   ),
-                  const SizedBox(height: 10),
-                  Text(
-                    recipe.instructions,
-                    style: const TextStyle(fontSize: 16, height: 1.5),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(color: AppColors.divider),
+                    ),
+                    child: Text(
+                      recipe.instructions,
+                      style: const TextStyle(
+                        fontSize: 14,
+                        height: 1.7,
+                        color: AppColors.textPrimary,
+                      ),
+                    ),
                   ),
                   const SizedBox(height: 40),
                 ],
               ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInfoChip({
+    required IconData icon,
+    required String label,
+    required Color color,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+      decoration: BoxDecoration(
+        color: color.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(AppRadius.chip),
+        border: Border.all(color: color.withOpacity(0.2)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: TextStyle(
+              color: color,
+              fontWeight: FontWeight.w600,
+              fontSize: 13,
             ),
           ),
         ],

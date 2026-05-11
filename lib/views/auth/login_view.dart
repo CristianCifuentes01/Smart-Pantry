@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import '../../core/theme/app_theme.dart';
 import '../../viewmodels/auth_viewmodel.dart';
 import '../main/main_view.dart';
 import 'register_view.dart';
@@ -33,128 +34,238 @@ class _LoginViewState extends State<LoginView> {
     final authViewModel = Provider.of<AuthViewModel>(context);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('SmartPantry - Acceso'),
-        centerTitle: true,
-      ),
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/images/logo.png', height: 150),
-              const SizedBox(height: 30),
-
-              // Campo de Correo
-              TextField(
-                controller: _emailController,
-                keyboardType: TextInputType.emailAddress,
-                decoration: const InputDecoration(
-                  labelText: 'Correo Electrónico',
-                  prefixIcon: Icon(Icons.email),
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // Campo de Contraseña
-              TextField(
-                controller: _passwordController,
-                obscureText: _obscurePassword,
-                decoration: InputDecoration(
-                  labelText: 'Contraseña',
-                  prefixIcon: const Icon(Icons.password),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _obscurePassword
-                          ? Icons.visibility_off
-                          : Icons.visibility,
-                      color: Colors.grey,
-                    ),
-                    onPressed: () {
-                      setState(() {
-                        _obscurePassword = !_obscurePassword;
-                      });
-                    },
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 28.0),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // ── Logo ──
+                Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withOpacity(0.15),
+                        blurRadius: 40,
+                        spreadRadius: 10,
+                      ),
+                    ],
                   ),
-                  border: const OutlineInputBorder(),
+                  child: Image.asset('assets/images/logo.png', height: 120),
                 ),
-              ),
-              const SizedBox(height: 20),
+                const SizedBox(height: 24),
 
-              // Mostrar mensaje de error si existe
-              if (authViewModel.errorMessage != null)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 20),
-                  child: Text(
-                    authViewModel.errorMessage!,
-                    style: const TextStyle(
-                      color: Colors.red,
-                      fontWeight: FontWeight.bold,
-                    ),
-                    textAlign: TextAlign.center,
+                // ── Título ──
+                Text(
+                  'SmartPantry',
+                  style: Theme.of(context).textTheme.headlineLarge?.copyWith(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
+                const SizedBox(height: 6),
+                Text(
+                  'Inicia sesión para continuar',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 14,
+                  ),
+                ),
+                const SizedBox(height: 36),
 
-              // Botón de Ingreso o Indicador de Carga
-              authViewModel.isLoading
-                  ? const CircularProgressIndicator()
-                  : ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(double.infinity, 50),
-                      ),
-                      onPressed: () async {
-                        // 1. Capturamos los textos
-                        final email = _emailController.text.trim();
-                        final password = _passwordController.text.trim();
-
-                        if (email.isEmpty || password.isEmpty) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Por favor llena todos los campos'),
-                            ),
-                          );
-                          return;
-                        }
-
-                        // 2. Llamamos al ViewModel
-                        final success = await authViewModel.login(
-                          email,
-                          password,
-                        );
-
-                        // 3. Si fue exitoso, navegamos al Home y eliminamos el Login del historial
-                        if (success && mounted) {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const MainView(),
-                            ),
-                          );
-                        }
-                      },
-                      child: const Text(
-                        'Iniciar Sesión',
-                        style: TextStyle(fontSize: 18),
-                      ),
-                    ), // AQUÍ SE CIERRA EL ELEVATED BUTTON
-
-              const SizedBox(height: 20),
-
-              // Botón para ir a Registro (AHORA ESTÁ AFUERA DEL OTRO BOTÓN)
-              TextButton(
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const RegisterView(),
+                // ── Campo de Correo ──
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Correo Electrónico',
+                      style: Theme.of(context).textTheme.labelLarge,
                     ),
-                  );
-                },
-                child: const Text('¿No tienes cuenta? Regístrate aquí'),
-              ),
-            ],
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: 'tucorreo@email.com',
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+
+                // ── Campo de Contraseña ──
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Contraseña',
+                      style: Theme.of(context).textTheme.labelLarge,
+                    ),
+                    const SizedBox(height: 8),
+                    TextField(
+                      controller: _passwordController,
+                      obscureText: _obscurePassword,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: InputDecoration(
+                        hintText: '••••••••',
+                        prefixIcon: const Icon(Icons.lock_outline),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.textSecondary,
+                          ),
+                          onPressed: () {
+                            setState(() {
+                              _obscurePassword = !_obscurePassword;
+                            });
+                          },
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+
+                // Mostrar mensaje de error si existe
+                if (authViewModel.errorMessage != null)
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    margin: const EdgeInsets.only(bottom: 20),
+                    decoration: BoxDecoration(
+                      color: AppColors.urgent.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(AppRadius.card),
+                      border: Border.all(
+                        color: AppColors.urgent.withOpacity(0.3),
+                      ),
+                    ),
+                    child: Text(
+                      authViewModel.errorMessage!,
+                      style: const TextStyle(
+                        color: AppColors.urgent,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+
+                // ── Botón de Ingreso ──
+                authViewModel.isLoading
+                    ? const SizedBox(
+                        height: 50,
+                        child: Center(child: CircularProgressIndicator()),
+                      )
+                    : ElevatedButton(
+                        onPressed: () async {
+                          // 1. Capturamos los textos
+                          final email = _emailController.text.trim();
+                          final password = _passwordController.text.trim();
+
+                          if (email.isEmpty || password.isEmpty) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Por favor llena todos los campos'),
+                              ),
+                            );
+                            return;
+                          }
+
+                          // 2. Llamamos al ViewModel
+                          final success = await authViewModel.login(
+                            email,
+                            password,
+                          );
+
+                          // 3. Si fue exitoso, navegamos al Home y eliminamos el Login del historial
+                          if (success && mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const MainView(),
+                              ),
+                            );
+                          }
+                        },
+                        child: const Text(
+                          'Iniciar Sesión',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+
+                const SizedBox(height: 20),
+
+                // ── Divider con texto ──
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: AppColors.divider,
+                      ),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Text(
+                        'o',
+                        style: TextStyle(
+                          color: AppColors.textSecondary.withOpacity(0.6),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Container(
+                        height: 1,
+                        color: AppColors.divider,
+                      ),
+                    ),
+                  ],
+                ),
+
+                const SizedBox(height: 20),
+
+                // Botón para ir a Registro
+                TextButton(
+                  onPressed: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => const RegisterView(),
+                      ),
+                    );
+                  },
+                  child: RichText(
+                    text: TextSpan(
+                      text: '¿No tienes cuenta? ',
+                      style: TextStyle(
+                        color: AppColors.textSecondary,
+                        fontSize: 14,
+                        fontFamily: Theme.of(context).textTheme.bodyMedium?.fontFamily,
+                      ),
+                      children: const [
+                        TextSpan(
+                          text: 'Regístrate',
+                          style: TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
