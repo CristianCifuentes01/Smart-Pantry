@@ -4,13 +4,39 @@ import '../../core/theme/app_theme.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
 import 'recipe_detail_view.dart';
 
-class RecipesView extends StatelessWidget {
+class RecipesView extends StatefulWidget {
   const RecipesView({super.key});
+
+  @override
+  State<RecipesView> createState() => _RecipesViewState();
+}
+
+class _RecipesViewState extends State<RecipesView> {
+  late final TextEditingController _searchController;
+
+  @override
+  void initState() {
+    super.initState();
+    _searchController = TextEditingController();
+
+    // Cargar sugerencias automáticamente al entrar a la vista de recetas (UX Premium)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final viewModel = Provider.of<RecipesViewModel>(context, listen: false);
+      if (viewModel.recipes.isEmpty) {
+        viewModel.suggestFromPantry();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final viewModel = Provider.of<RecipesViewModel>(context);
-    final searchController = TextEditingController();
 
     return Scaffold(
       appBar: AppBar(
@@ -36,7 +62,7 @@ class RecipesView extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: TextField(
-              controller: searchController,
+              controller: _searchController,
               onSubmitted: (value) => viewModel.searchRecipes(value),
               style: const TextStyle(color: AppColors.textPrimary),
               decoration: InputDecoration(
@@ -44,7 +70,7 @@ class RecipesView extends StatelessWidget {
                 prefixIcon: const Icon(Icons.search),
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.send, color: AppColors.primary, size: 20),
-                  onPressed: () => viewModel.searchRecipes(searchController.text),
+                  onPressed: () => viewModel.searchRecipes(_searchController.text),
                 ),
               ),
             ),
@@ -235,6 +261,7 @@ class RecipesView extends StatelessWidget {
                       child: ElevatedButton(
                         onPressed: () => _openRecipeDetail(context, viewModel, recipe.id),
                         style: ElevatedButton.styleFrom(
+                          minimumSize: const Size(0, 36), // Sobrescribir el tamaño mínimo infinito del tema global
                           padding: const EdgeInsets.symmetric(horizontal: 16),
                           textStyle: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
                         ),

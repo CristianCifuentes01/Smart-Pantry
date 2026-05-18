@@ -15,8 +15,8 @@ class NotificationService {
     // Inicializa las zonas horarias
     tz.initializeTimeZones();
 
-    // Configura el ícono de la notificación
-    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    // Configura el ícono de la notificación (usando el drawable limpio de la app)
+    const AndroidInitializationSettings androidSettings = AndroidInitializationSettings('ic_notification');
     const InitializationSettings initSettings = InitializationSettings(android: androidSettings);
 
     await _notificationsPlugin.initialize(initSettings);
@@ -67,6 +67,7 @@ class NotificationService {
           channelDescription: 'Avisos cuando un alimento está por vencer',
           importance: Importance.max,
           priority: Priority.high,
+          largeIcon: DrawableResourceAndroidBitmap('ic_notification'), // NUEVO: Muestra el logo a todo color
         ),
       ),
       androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
@@ -94,6 +95,7 @@ class NotificationService {
           'Pruebas',
           importance: Importance.max,
           priority: Priority.high,
+          largeIcon: DrawableResourceAndroidBitmap('ic_notification'), // NUEVO: Muestra el logo a todo color
         ),
       ),
     );
