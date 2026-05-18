@@ -45,7 +45,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'SmartPantry',
+        title: 'Smart Pantry',
         theme: AppTheme.darkTheme,
         // Restauramos el StreamBuilder para escuchar el estado de sesión al instante
         home: StreamBuilder<User?>(

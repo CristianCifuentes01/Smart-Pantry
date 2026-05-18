@@ -197,10 +197,10 @@ class _ScannerViewState extends State<ScannerView> {
   }
 
   void _showAddProductSheet(BuildContext context, ScannerViewModel viewModel, {bool isManual = false}) {
-    // Si ya hay datos de un escaneo previo, los usamos
+    // Si ya hay datos de un escaneo previo, los usamos, sino limpiamos para recibir datos reactivos
     if (!isManual && viewModel.scannedData != null) {
       _nameController.text = viewModel.scannedData!['name'] ?? '';
-    } else if (isManual) {
+    } else {
       _nameController.clear();
     }
 
@@ -213,209 +213,245 @@ class _ScannerViewState extends State<ScannerView> {
         borderRadius: BorderRadius.vertical(top: Radius.circular(AppRadius.sheet)),
       ),
       builder: (context) {
-        return Padding(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 16,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // ── Handle ──
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  decoration: BoxDecoration(
-                    color: AppColors.divider,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
+        return Consumer<ScannerViewModel>(
+          builder: (context, viewModel, child) {
+            // Actualizar reactivamente el controlador del nombre cuando termine de cargar
+            if (!viewModel.isLoading && viewModel.scannedData != null && _nameController.text.isEmpty) {
+              _nameController.text = viewModel.scannedData!['name'] ?? '';
+            }
 
-              // ── Título ──
-              Text(
-                isManual ? 'Agregar Manualmente' : 'Producto Detectado',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.textPrimary,
-                ),
+            return Padding(
+              padding: EdgeInsets.only(
+                bottom: MediaQuery.of(context).viewInsets.bottom,
+                left: 20,
+                right: 20,
+                top: 16,
               ),
-              const SizedBox(height: 18),
-
-              // ── Imagen del producto (si se detectó) ──
-              if (!isManual && viewModel.scannedData?['image'] != null && viewModel.scannedData?['image'] != '')
-                Center(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: AppColors.divider),
-                    ),
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(11),
-                      child: CachedNetworkImage(
-                        imageUrl: viewModel.scannedData!['image'],
-                        height: 120,
-                        width: 120,
-                        fit: BoxFit.contain,
-                        placeholder: (context, url) => const SkeletonImageLoader(
-                          height: 120,
-                          width: 120,
-                        ),
-                        errorWidget: (context, url, error) => Container(
-                          height: 120,
-                          width: 120,
-                          color: AppColors.surface,
-                          child: const Icon(Icons.fastfood, size: 48, color: AppColors.textSecondary),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 18),
-
-              // ── Campo nombre ──
-              Text(
-                'Nombre del Producto',
-                style: Theme.of(context).textTheme.labelLarge,
-              ),
-              const SizedBox(height: 8),
-              TextField(
-                controller: _nameController,
-                style: const TextStyle(color: AppColors.textPrimary),
-                decoration: const InputDecoration(
-                  hintText: 'Ej: Leche entera',
-                  prefixIcon: Icon(Icons.shopping_basket_outlined),
-                ),
-              ),
-              const SizedBox(height: 20),
-
-              // ── Fecha de Vencimiento ──
-              const Text(
-                'Fecha de Vencimiento',
-                style: TextStyle(
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.textPrimary,
-                  fontSize: 14,
-                ),
-              ),
-              const SizedBox(height: 10),
-              // Botones de selección rápida (RF-09)
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _quickDateButton(context, viewModel, '3 días', 3),
-                    const SizedBox(width: 8),
-                    _quickDateButton(context, viewModel, '1 semana', 7),
-                    const SizedBox(width: 8),
-                    _quickDateButton(context, viewModel, '2 semanas', 14),
-                    const SizedBox(width: 8),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(AppRadius.card),
-                        border: Border.all(color: AppColors.primary.withOpacity(0.2)),
-                      ),
-                      child: IconButton(
-                        onPressed: () async {
-                          final date = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now().add(const Duration(days: 7)),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
-                          );
-                          if (date != null) viewModel.setSelectedDate(date);
-                        },
-                        icon: const Icon(Icons.calendar_month, color: AppColors.primary, size: 22),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (viewModel.selectedDate != null)
-                Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: AppColors.primary.withOpacity(0.1),
-                      borderRadius: BorderRadius.circular(AppRadius.chip),
-                    ),
-                    child: Text(
-                      '📅 ${DateFormat('dd/MM/yyyy').format(viewModel.selectedDate!)}',
-                      style: const TextStyle(
-                        color: AppColors.primary,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 14,
-                      ),
-                    ),
-                  ),
-                ),
-              const SizedBox(height: 24),
-
-              // ── Botones de acción ──
-              Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                        viewModel.reset();
-                        _controller.start();
-                      },
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size(0, 48),
+                  // ── Handle ──
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: AppColors.divider,
+                        borderRadius: BorderRadius.circular(2),
                       ),
-                      child: const Text('CANCELAR'),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    flex: 2,
-                    child: ElevatedButton(
-                      onPressed: viewModel.selectedDate == null || _nameController.text.isEmpty
-                          ? null
-                          : () async {
-                              final success = await viewModel.addProduct(
-                                _nameController.text,
-                                viewModel.scannedData?['image'] ?? '',
-                                viewModel.scannedData?['barcode'] ?? 'MANUAL',
-                              );
-                              if (success && context.mounted) {
-                                Navigator.pop(context); // Cierra bottom sheet
-                                _showSuccessAnimation(context);
-                                
-                                Future.delayed(const Duration(milliseconds: 1500), () {
-                                  if (context.mounted) {
-                                    Navigator.pop(context); // Cierra dialogo de exito
-                                    Navigator.pop(context); // Vuelve al home
+                  const SizedBox(height: 20),
+
+                  // ── Título ──
+                  Text(
+                    viewModel.isLoading
+                        ? 'Buscando producto...'
+                        : (isManual ? 'Agregar Manualmente' : 'Producto Detectado'),
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                    ),
+                  ),
+                  const SizedBox(height: 18),
+
+                  // ── Imagen o Skeleton del producto ──
+                  if (viewModel.isLoading)
+                    Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: const SkeletonImageLoader(
+                          height: 120,
+                          width: 120,
+                        ),
+                      ),
+                    )
+                  else if (!isManual && viewModel.scannedData?['image'] != null && viewModel.scannedData?['image'] != '')
+                    Center(
+                      child: Container(
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: AppColors.divider),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(11),
+                          child: CachedNetworkImage(
+                            imageUrl: viewModel.scannedData!['image'],
+                            height: 120,
+                            width: 120,
+                            fit: BoxFit.contain,
+                            placeholder: (context, url) => const SkeletonImageLoader(
+                              height: 120,
+                              width: 120,
+                            ),
+                            errorWidget: (context, url, error) => Container(
+                              height: 120,
+                              width: 120,
+                              color: AppColors.surface,
+                              child: const Icon(Icons.fastfood, size: 48, color: AppColors.textSecondary),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 18),
+
+                  // ── Campo nombre o Skeleton ──
+                  Text(
+                    'Nombre del Producto',
+                    style: Theme.of(context).textTheme.labelLarge,
+                  ),
+                  const SizedBox(height: 8),
+                  if (viewModel.isLoading)
+                    const SkeletonImageLoader(
+                      width: double.infinity,
+                      height: 50,
+                    )
+                  else
+                    TextField(
+                      controller: _nameController,
+                      style: const TextStyle(color: AppColors.textPrimary),
+                      decoration: const InputDecoration(
+                        hintText: 'Ej: Leche entera',
+                        prefixIcon: Icon(Icons.shopping_basket_outlined),
+                      ),
+                    ),
+                  const SizedBox(height: 20),
+
+                  // ── Fecha de Vencimiento ──
+                  const Text(
+                    'Fecha de Vencimiento',
+                    style: TextStyle(
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.textPrimary,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Botones de selección rápida o Skeleton
+                  if (viewModel.isLoading)
+                    const SkeletonImageLoader(
+                      width: double.infinity,
+                      height: 40,
+                    )
+                  else
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _quickDateButton(context, viewModel, '3 días', 3),
+                          const SizedBox(width: 8),
+                          _quickDateButton(context, viewModel, '1 semana', 7),
+                          const SizedBox(width: 8),
+                          _quickDateButton(context, viewModel, '2 semanas', 14),
+                          const SizedBox(width: 8),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.primary.withOpacity(0.1),
+                              borderRadius: BorderRadius.circular(AppRadius.card),
+                              border: Border.all(color: AppColors.primary.withOpacity(0.2)),
+                            ),
+                            child: IconButton(
+                              onPressed: () async {
+                                final date = await showDatePicker(
+                                  context: context,
+                                  initialDate: DateTime.now().add(const Duration(days: 7)),
+                                  firstDate: DateTime.now(),
+                                  lastDate: DateTime.now().add(const Duration(days: 365 * 5)),
+                                );
+                                if (date != null) viewModel.setSelectedDate(date);
+                              },
+                              icon: const Icon(Icons.calendar_month, color: AppColors.primary, size: 22),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (!viewModel.isLoading && viewModel.selectedDate != null)
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(AppRadius.chip),
+                        ),
+                        child: Text(
+                          '📅 ${DateFormat('dd/MM/yyyy').format(viewModel.selectedDate!)}',
+                          style: const TextStyle(
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                    ),
+                  const SizedBox(height: 24),
+
+                  // ── Botones de acción ──
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () {
+                            Navigator.pop(context);
+                            viewModel.reset();
+                            _controller.start();
+                          },
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                          ),
+                          child: const Text('CANCELAR'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        flex: 2,
+                        child: ElevatedButton(
+                          onPressed: viewModel.isLoading || viewModel.selectedDate == null || _nameController.text.isEmpty
+                              ? null
+                              : () async {
+                                  final success = await viewModel.addProduct(
+                                    _nameController.text,
+                                    viewModel.scannedData?['image'] ?? '',
+                                    viewModel.scannedData?['barcode'] ?? 'MANUAL',
+                                  );
+                                  if (success && context.mounted) {
+                                    Navigator.pop(context); // Cierra bottom sheet
+                                    _showSuccessAnimation(context);
+                                    
+                                    Future.delayed(const Duration(milliseconds: 1500), () {
+                                      if (context.mounted) {
+                                        Navigator.pop(context); // Cierra dialogo de exito
+                                        Navigator.pop(context); // Vuelve al home
+                                      }
+                                    });
+                                    viewModel.reset();
                                   }
-                                });
-                                viewModel.reset();
-                              }
-                            },
-                      style: ElevatedButton.styleFrom(
-                        minimumSize: const Size(0, 48),
-                        disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
-                        disabledForegroundColor: AppColors.background.withOpacity(0.5),
+                                },
+                          style: ElevatedButton.styleFrom(
+                            minimumSize: const Size(0, 48),
+                            disabledBackgroundColor: AppColors.primary.withOpacity(0.3),
+                            disabledForegroundColor: AppColors.background.withOpacity(0.5),
+                          ),
+                          child: const Text(
+                            'GUARDAR',
+                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
+                          ),
+                        ),
                       ),
-                      child: const Text(
-                        'GUARDAR',
-                        style: TextStyle(fontSize: 15, fontWeight: FontWeight.w700),
-                      ),
-                    ),
+                    ],
                   ),
+                  const SizedBox(height: 20),
                 ],
               ),
-              const SizedBox(height: 20),
-            ],
-          ),
+            );
+          },
         );
       },
     ).then((_) {
