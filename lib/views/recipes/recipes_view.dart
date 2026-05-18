@@ -4,6 +4,8 @@ import '../../core/theme/app_theme.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
 import 'recipe_detail_view.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/skeleton_loader.dart';
 
 class RecipesView extends StatefulWidget {
   const RecipesView({super.key});
@@ -94,7 +96,7 @@ class _RecipesViewState extends State<RecipesView> {
           // ── Lista de resultados ──
           Expanded(
             child: viewModel.isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const SkeletonRecipeLoader()
                 : viewModel.recipes.isEmpty
                     ? _buildEmptyState()
                     : ListView.builder(
@@ -150,7 +152,7 @@ class _RecipesViewState extends State<RecipesView> {
             ),
           ),
         ],
-      ),
+      ).animate().fade(duration: 500.ms).scale(delay: 200.ms),
     );
   }
 
@@ -173,37 +175,29 @@ class _RecipesViewState extends State<RecipesView> {
               // ── Imagen ──
               Stack(
                 children: [
-                  ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                    child: CachedNetworkImage(
-                      imageUrl: recipe.imageUrl,
-                      height: 160,
-                      width: double.infinity,
-                      fit: BoxFit.cover,
-                      placeholder: (context, url) => Container(
+                  Hero(
+                    tag: 'recipe_image_${recipe.id}',
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
+                      child: CachedNetworkImage(
+                        imageUrl: recipe.imageUrl,
                         height: 160,
-                        color: AppColors.surfaceAccent,
-                        child: const Center(
-                          child: SizedBox(
-                            width: 32,
-                            height: 32,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 3,
-                              valueColor: AlwaysStoppedAnimation<Color>(
-                                AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        placeholder: (context, url) => const SkeletonImageLoader(
+                          height: 160,
+                          width: double.infinity,
+                          borderRadius: BorderRadius.vertical(top: Radius.circular(11)),
                         ),
-                      ),
-                      errorWidget: (context, url, error) => Container(
-                        height: 160,
-                        color: AppColors.surfaceAccent,
-                        child: const Center(
-                          child: Icon(
-                            Icons.fastfood,
-                            size: 48,
-                            color: AppColors.textSecondary,
+                        errorWidget: (context, url, error) => Container(
+                          height: 160,
+                          color: AppColors.surfaceAccent,
+                          child: const Center(
+                            child: Icon(
+                              Icons.fastfood,
+                              size: 48,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       ),

@@ -7,6 +7,7 @@ import '../../viewmodels/inventory_viewmodel.dart';
 import '../../core/utils/product_utils.dart';
 import '../../data/services/notification_service.dart'; // Para notificaciones (RF-12)
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/skeleton_loader.dart';
 
 class ProductDetailView extends StatefulWidget {
   final ProductModel product;
@@ -97,36 +98,34 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                   ],
                 ),
                 child: widget.product.imageUrl.isNotEmpty
-                    ? ClipRRect(
-                        borderRadius: BorderRadius.circular(15),
-                        child: CachedNetworkImage(
-                          imageUrl: widget.product.imageUrl,
-                          height: 180,
-                          width: 180,
-                          fit: BoxFit.cover,
-                          placeholder: (context, url) => const Center(
-                            child: SizedBox(
-                              width: 32,
-                              height: 32,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 3,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.textSecondary,
-                                ),
-                              ),
+                    ? Hero(
+                        tag: 'product_image_${widget.product.id}',
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(15),
+                          child: CachedNetworkImage(
+                            imageUrl: widget.product.imageUrl,
+                            height: 180,
+                            width: 180,
+                            fit: BoxFit.cover,
+                            placeholder: (context, url) => const SkeletonImageLoader(
+                              width: 180,
+                              height: 180,
                             ),
-                          ),
-                          errorWidget: (context, url, error) => const Icon(
-                            Icons.fastfood,
-                            size: 64,
-                            color: AppColors.textSecondary,
+                            errorWidget: (context, url, error) => const Icon(
+                              Icons.fastfood,
+                              size: 64,
+                              color: AppColors.textSecondary,
+                            ),
                           ),
                         ),
                       )
-                    : const Icon(
-                        Icons.fastfood,
-                        size: 64,
-                        color: AppColors.textSecondary,
+                    : Hero(
+                        tag: 'product_icon_${widget.product.id}',
+                        child: const Icon(
+                          Icons.fastfood,
+                          size: 64,
+                          color: AppColors.textSecondary,
+                        ),
                       ),
               ),
             ),

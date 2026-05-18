@@ -7,6 +7,8 @@ import '../scanner/scanner_view.dart';
 import '../product_detail/product_detail_view.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/skeleton_loader.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -39,7 +41,7 @@ class _HomeViewState extends State<HomeView> {
       body: Consumer<InventoryViewModel>(
         builder: (context, viewModel, child) {
           if (viewModel.isLoading) {
-            return const Center(child: CircularProgressIndicator());
+            return const SkeletonListLoader();
           }
 
           return Column(
@@ -181,40 +183,34 @@ class _HomeViewState extends State<HomeView> {
                                           borderRadius: BorderRadius.circular(AppRadius.card),
                                         ),
                                         child: product.imageUrl.isNotEmpty
-                                            ? ClipRRect(
-                                                borderRadius: BorderRadius.circular(AppRadius.card),
-                                                child: CachedNetworkImage(
-                                                  imageUrl: product.imageUrl,
-                                                  width: 56,
-                                                  height: 56,
-                                                  fit: BoxFit.cover,
-                                                  placeholder: (context, url) => const SizedBox(
+                                            ? Hero(
+                                                tag: 'product_image_${product.id}',
+                                                child: ClipRRect(
+                                                  borderRadius: BorderRadius.circular(AppRadius.card),
+                                                  child: CachedNetworkImage(
+                                                    imageUrl: product.imageUrl,
                                                     width: 56,
                                                     height: 56,
-                                                    child: Center(
-                                                      child: SizedBox(
-                                                        width: 20,
-                                                        height: 20,
-                                                        child: CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                          valueColor: AlwaysStoppedAnimation<Color>(
-                                                            AppColors.textSecondary,
-                                                          ),
-                                                        ),
-                                                      ),
+                                                    fit: BoxFit.cover,
+                                                    placeholder: (context, url) => const SkeletonImageLoader(
+                                                      width: 56,
+                                                      height: 56,
                                                     ),
-                                                  ),
-                                                  errorWidget: (context, url, error) => const Icon(
-                                                    Icons.fastfood,
-                                                    color: AppColors.textSecondary,
-                                                    size: 28,
+                                                    errorWidget: (context, url, error) => const Icon(
+                                                      Icons.fastfood,
+                                                      color: AppColors.textSecondary,
+                                                      size: 28,
+                                                    ),
                                                   ),
                                                 ),
                                               )
-                                            : const Icon(
-                                                Icons.fastfood,
-                                                color: AppColors.textSecondary,
-                                                size: 28,
+                                            : Hero(
+                                                tag: 'product_icon_${product.id}',
+                                                child: const Icon(
+                                                  Icons.fastfood,
+                                                  color: AppColors.textSecondary,
+                                                  size: 28,
+                                                ),
                                               ),
                                       ),
                                       const SizedBox(width: 12),
@@ -374,7 +370,7 @@ class _HomeViewState extends State<HomeView> {
             ),
           ),
         ],
-      ),
+      ).animate().fade(duration: 500.ms).scale(delay: 200.ms),
     );
   }
 

@@ -5,6 +5,8 @@ import '../../core/theme/app_theme.dart';
 import '../../viewmodels/scanner_viewmodel.dart';
 import 'package:intl/intl.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import '../widgets/skeleton_loader.dart';
 
 class ScannerView extends StatefulWidget {
   const ScannerView({super.key});
@@ -261,21 +263,9 @@ class _ScannerViewState extends State<ScannerView> {
                         height: 120,
                         width: 120,
                         fit: BoxFit.contain,
-                        placeholder: (context, url) => const SizedBox(
+                        placeholder: (context, url) => const SkeletonImageLoader(
                           height: 120,
                           width: 120,
-                          child: Center(
-                            child: SizedBox(
-                              width: 24,
-                              height: 24,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                valueColor: AlwaysStoppedAnimation<Color>(
-                                  AppColors.textSecondary,
-                                ),
-                              ),
-                            ),
-                          ),
                         ),
                         errorWidget: (context, url, error) => Container(
                           height: 120,
@@ -399,13 +389,14 @@ class _ScannerViewState extends State<ScannerView> {
                               );
                               if (success && context.mounted) {
                                 Navigator.pop(context); // Cierra bottom sheet
-                                Navigator.pop(context); // Vuelve al home
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('¡Producto agregado con éxito!'),
-                                    backgroundColor: AppColors.safe,
-                                  ),
-                                );
+                                _showSuccessAnimation(context);
+                                
+                                Future.delayed(const Duration(milliseconds: 1500), () {
+                                  if (context.mounted) {
+                                    Navigator.pop(context); // Cierra dialogo de exito
+                                    Navigator.pop(context); // Vuelve al home
+                                  }
+                                });
                                 viewModel.reset();
                               }
                             },
@@ -435,6 +426,32 @@ class _ScannerViewState extends State<ScannerView> {
         _controller.start();
       }
     });
+  }
+
+  void _showSuccessAnimation(BuildContext context) {
+    showDialog(
+      context: context,
+      barrierColor: Colors.black54,
+      barrierDismissible: false,
+      builder: (context) => Center(
+        child: Container(
+          padding: const EdgeInsets.all(32),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+          ),
+          child: const Icon(
+            Icons.check_circle,
+            color: AppColors.safe,
+            size: 100,
+          ),
+        ).animate()
+         .scale(duration: 500.ms, curve: Curves.easeOutBack)
+         .fadeIn(duration: 400.ms)
+         .then(delay: 500.ms)
+         .fadeOut(duration: 300.ms),
+      ),
+    );
   }
 
   Widget _quickDateButton(BuildContext context, ScannerViewModel viewModel, String label, int days) {

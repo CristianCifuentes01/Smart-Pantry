@@ -4,6 +4,7 @@ import '../../data/models/meal_detail_model.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import '../widgets/skeleton_loader.dart';
 
 class RecipeDetailView extends StatelessWidget {
   final MealDetailModel recipe;
@@ -43,27 +44,20 @@ class RecipeDetailView extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  CachedNetworkImage(
-                    imageUrl: recipe.imageUrl,
-                    fit: BoxFit.cover,
-                    placeholder: (context, url) => Container(
-                      color: AppColors.surface,
-                      child: const Center(
-                        child: SizedBox(
-                          width: 40,
-                          height: 40,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 3,
-                            valueColor: AlwaysStoppedAnimation<Color>(
-                              AppColors.textSecondary,
-                            ),
-                          ),
-                        ),
+                  Hero(
+                    tag: 'recipe_image_${recipe.id}',
+                    child: CachedNetworkImage(
+                      imageUrl: recipe.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const SkeletonImageLoader(
+                        width: double.infinity,
+                        height: double.infinity,
+                        borderRadius: BorderRadius.zero,
                       ),
-                    ),
-                    errorWidget: (context, url, error) => Container(
-                      color: AppColors.surface,
-                      child: const Icon(Icons.fastfood, size: 80, color: AppColors.textSecondary),
+                      errorWidget: (context, url, error) => Container(
+                        color: AppColors.surface,
+                        child: const Icon(Icons.fastfood, size: 80, color: AppColors.textSecondary),
+                      ),
                     ),
                   ),
                   // Gradiente para legibilidad del título
