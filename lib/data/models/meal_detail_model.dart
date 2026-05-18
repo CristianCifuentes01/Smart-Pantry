@@ -43,4 +43,30 @@ class MealDetailModel {
       ingredients: ingredientsList,
     );
   }
+
+  // Constructor para reconstruir el modelo a partir de datos ya traducidos y guardados en caché
+  factory MealDetailModel.fromJsonTranslated(Map<String, dynamic> json) {
+    return MealDetailModel(
+      id: json['idMeal'] ?? '',
+      name: json['strMeal'] ?? 'Receta sin nombre',
+      imageUrl: json['strMealThumb'] ?? '',
+      category: json['strCategory'] ?? 'Desconocida',
+      area: json['strArea'] ?? 'Desconocida',
+      instructions: json['strInstructions'] ?? 'Sin instrucciones.',
+      ingredients: List<String>.from(json['ingredients'] ?? []),
+    );
+  }
+
+  // Convierte el modelo a un mapa JSON optimizado para almacenar la versión traducida localmente
+  Map<String, dynamic> toJsonTranslated() {
+    return {
+      'idMeal': id,
+      'strMeal': name,
+      'strMealThumb': imageUrl,
+      'strCategory': category,
+      'strArea': area,
+      'strInstructions': instructions,
+      'ingredients': ingredients,
+    };
+  }
 }

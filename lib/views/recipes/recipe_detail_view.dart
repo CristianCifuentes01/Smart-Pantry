@@ -3,6 +3,7 @@ import '../../core/theme/app_theme.dart';
 import '../../data/models/meal_detail_model.dart';
 import 'package:provider/provider.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class RecipeDetailView extends StatelessWidget {
   final MealDetailModel recipe;
@@ -42,10 +43,25 @@ class RecipeDetailView extends StatelessWidget {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    recipe.imageUrl,
+                  CachedNetworkImage(
+                    imageUrl: recipe.imageUrl,
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    placeholder: (context, url) => Container(
+                      color: AppColors.surface,
+                      child: const Center(
+                        child: SizedBox(
+                          width: 40,
+                          height: 40,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 3,
+                            valueColor: AlwaysStoppedAnimation<Color>(
+                              AppColors.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    errorWidget: (context, url, error) => Container(
                       color: AppColors.surface,
                       child: const Icon(Icons.fastfood, size: 80, color: AppColors.textSecondary),
                     ),

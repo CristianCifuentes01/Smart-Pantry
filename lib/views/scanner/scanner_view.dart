@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../viewmodels/scanner_viewmodel.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ScannerView extends StatefulWidget {
   const ScannerView({super.key});
@@ -255,10 +256,28 @@ class _ScannerViewState extends State<ScannerView> {
                     ),
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(11),
-                      child: Image.network(
-                        viewModel.scannedData!['image'],
+                      child: CachedNetworkImage(
+                        imageUrl: viewModel.scannedData!['image'],
                         height: 120,
-                        errorBuilder: (context, error, stackTrace) => Container(
+                        width: 120,
+                        fit: BoxFit.contain,
+                        placeholder: (context, url) => const SizedBox(
+                          height: 120,
+                          width: 120,
+                          child: Center(
+                            child: SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        errorWidget: (context, url, error) => Container(
                           height: 120,
                           width: 120,
                           color: AppColors.surface,

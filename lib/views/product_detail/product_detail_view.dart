@@ -6,6 +6,7 @@ import '../../data/models/product_model.dart';
 import '../../viewmodels/inventory_viewmodel.dart';
 import '../../core/utils/product_utils.dart';
 import '../../data/services/notification_service.dart'; // Para notificaciones (RF-12)
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProductDetailView extends StatefulWidget {
   final ProductModel product;
@@ -98,12 +99,24 @@ class _ProductDetailViewState extends State<ProductDetailView> {
                 child: widget.product.imageUrl.isNotEmpty
                     ? ClipRRect(
                         borderRadius: BorderRadius.circular(15),
-                        child: Image.network(
-                          widget.product.imageUrl,
+                        child: CachedNetworkImage(
+                          imageUrl: widget.product.imageUrl,
                           height: 180,
                           width: 180,
                           fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) => const Icon(
+                          placeholder: (context, url) => const Center(
+                            child: SizedBox(
+                              width: 32,
+                              height: 32,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 3,
+                                valueColor: AlwaysStoppedAnimation<Color>(
+                                  AppColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                          errorWidget: (context, url, error) => const Icon(
                             Icons.fastfood,
                             size: 64,
                             color: AppColors.textSecondary,

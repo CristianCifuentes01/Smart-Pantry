@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme/app_theme.dart';
 import '../../viewmodels/recipes_viewmodel.dart';
 import 'recipe_detail_view.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class RecipesView extends StatefulWidget {
   const RecipesView({super.key});
@@ -63,17 +64,17 @@ class _RecipesViewState extends State<RecipesView> {
             padding: const EdgeInsets.all(16.0),
             child: TextField(
               controller: _searchController,
-              onSubmitted: (value) => viewModel.searchRecipes(value),
-              style: const TextStyle(color: AppColors.textPrimary),
-              decoration: InputDecoration(
-                hintText: 'Buscar por ingrediente (en inglés)...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send, color: AppColors.primary, size: 20),
-                  onPressed: () => viewModel.searchRecipes(_searchController.text),
-                ),
-              ),
-            ),
+               onSubmitted: (value) => viewModel.searchRecipes(value),
+               style: const TextStyle(color: AppColors.textPrimary),
+               decoration: InputDecoration(
+                hintText: 'Buscar por ingrediente (ej: pollo, tomate)...',
+                 prefixIcon: const Icon(Icons.search),
+                 suffixIcon: IconButton(
+                   icon: const Icon(Icons.send, color: AppColors.primary, size: 20),
+                   onPressed: () => viewModel.searchRecipes(_searchController.text),
+                 ),
+               ),
+             ),
           ),
 
           if (viewModel.recipes.isNotEmpty)
@@ -174,12 +175,28 @@ class _RecipesViewState extends State<RecipesView> {
                 children: [
                   ClipRRect(
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(11)),
-                    child: Image.network(
-                      recipe.imageUrl,
+                    child: CachedNetworkImage(
+                      imageUrl: recipe.imageUrl,
                       height: 160,
                       width: double.infinity,
                       fit: BoxFit.cover,
-                      errorBuilder: (c, e, s) => Container(
+                      placeholder: (context, url) => Container(
+                        height: 160,
+                        color: AppColors.surfaceAccent,
+                        child: const Center(
+                          child: SizedBox(
+                            width: 32,
+                            height: 32,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 3,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
                         height: 160,
                         color: AppColors.surfaceAccent,
                         child: const Center(

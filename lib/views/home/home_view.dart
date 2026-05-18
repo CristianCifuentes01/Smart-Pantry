@@ -6,6 +6,7 @@ import '../../core/utils/product_utils.dart';
 import '../scanner/scanner_view.dart';
 import '../product_detail/product_detail_view.dart';
 import 'package:intl/intl.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({super.key});
@@ -182,12 +183,28 @@ class _HomeViewState extends State<HomeView> {
                                         child: product.imageUrl.isNotEmpty
                                             ? ClipRRect(
                                                 borderRadius: BorderRadius.circular(AppRadius.card),
-                                                child: Image.network(
-                                                  product.imageUrl,
+                                                child: CachedNetworkImage(
+                                                  imageUrl: product.imageUrl,
                                                   width: 56,
                                                   height: 56,
                                                   fit: BoxFit.cover,
-                                                  errorBuilder: (_, __, ___) => const Icon(
+                                                  placeholder: (context, url) => const SizedBox(
+                                                    width: 56,
+                                                    height: 56,
+                                                    child: Center(
+                                                      child: SizedBox(
+                                                        width: 20,
+                                                        height: 20,
+                                                        child: CircularProgressIndicator(
+                                                          strokeWidth: 2,
+                                                          valueColor: AlwaysStoppedAnimation<Color>(
+                                                            AppColors.textSecondary,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  errorWidget: (context, url, error) => const Icon(
                                                     Icons.fastfood,
                                                     color: AppColors.textSecondary,
                                                     size: 28,

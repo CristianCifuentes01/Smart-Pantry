@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -5,11 +6,13 @@ import '../data/models/meal_model.dart';
 import '../data/models/meal_detail_model.dart';
 import '../data/services/api_service.dart';
 import '../data/services/local_db_service.dart';
+import '../data/services/translation_service.dart';
 
 class RecipesViewModel extends ChangeNotifier {
   final ApiService _apiService = ApiService();
   final LocalDbService _localDb = LocalDbService();
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TranslationService _translationService = TranslationService();
 
   List<MealModel> _recipes = [];
   List<MealModel> get recipes => _recipes;
@@ -23,7 +26,33 @@ class RecipesViewModel extends ChangeNotifier {
     
     _setLoading(true);
     try {
-      _recipes = await _apiService.getRecipesByIngredient(ingredient);
+      // 1. Traducir el ingrediente buscado al inglés para la API (si no es local)
+      String englishIngredient = ingredient;
+      final localTranslation = _translateIngredient(ingredient);
+      
+      if (localTranslation != ingredient.toLowerCase()) {
+        englishIngredient = localTranslation;
+      } else {
+        englishIngredient = await _translationService.translate(ingredient, from: 'es', to: 'en');
+      }
+
+      print("Buscando ingrediente traducido: $englishIngredient (original: $ingredient)");
+      final rawRecipes = await _apiService.getRecipesByIngredient(englishIngredient);
+      
+      // 2. Traducir los nombres de las recetas al español en paralelo y con caché para un rendimiento ultra rápido
+      final prefs = await SharedPreferences.getInstance();
+      List<Future<MealModel>> translationFutures = rawRecipes.map((meal) async {
+        final cachedName = prefs.getString('trans_name_${meal.id}');
+        if (cachedName != null) {
+          return MealModel(id: meal.id, name: cachedName, imageUrl: meal.imageUrl);
+        } else {
+          final translatedName = await _translationService.translate(meal.name, from: 'en', to: 'es');
+          await prefs.setString('trans_name_${meal.id}', translatedName);
+          return MealModel(id: meal.id, name: translatedName, imageUrl: meal.imageUrl);
+        }
+      }).toList();
+
+      _recipes = await Future.wait(translationFutures);
     } catch (e) {
       _recipes = [];
       print("Error buscando recetas: $e");
@@ -103,7 +132,20 @@ class RecipesViewModel extends ChangeNotifier {
         }
       }
       
-      _recipes = foundRecipes;
+      // Traducir los nombres de las recetas sugeridas al español en paralelo y con caché
+      final prefs = await SharedPreferences.getInstance();
+      List<Future<MealModel>> translationFutures = foundRecipes.map((meal) async {
+        final cachedName = prefs.getString('trans_name_${meal.id}');
+        if (cachedName != null) {
+          return MealModel(id: meal.id, name: cachedName, imageUrl: meal.imageUrl);
+        } else {
+          final translatedName = await _translationService.translate(meal.name, from: 'en', to: 'es');
+          await prefs.setString('trans_name_${meal.id}', translatedName);
+          return MealModel(id: meal.id, name: translatedName, imageUrl: meal.imageUrl);
+        }
+      }).toList();
+
+      _recipes = await Future.wait(translationFutures);
 
     } catch (e) {
       print("Error sugiriendo recetas: $e");
@@ -121,8 +163,44 @@ class RecipesViewModel extends ChangeNotifier {
   Future<MealDetailModel?> getMealDetail(String mealId) async {
     try {
       print("Obteniendo detalles para mealId: $mealId");
+      
+      final prefs = await SharedPreferences.getInstance();
+      final cachedJson = prefs.getString('trans_meal_$mealId');
+      
+      if (cachedJson != null) {
+        print("Cargando detalle de receta traducido desde caché local");
+        final decoded = json.decode(cachedJson);
+        return MealDetailModel.fromJsonTranslated(decoded);
+      }
+
       final detail = await _apiService.getMealDetail(mealId);
-      return detail;
+      if (detail == null) return null;
+
+      // Traducir todos los campos de detalles al español en paralelo
+      final nameEsp = await _translationService.translate(detail.name, from: 'en', to: 'es');
+      final categoryEsp = await _translationService.translate(detail.category, from: 'en', to: 'es');
+      final areaEsp = await _translationService.translate(detail.area, from: 'en', to: 'es');
+      final instructionsEsp = await _translationService.translate(detail.instructions, from: 'en', to: 'es');
+      
+      // Traducir los ingredientes en paralelo
+      final ingredientsEsp = await Future.wait(
+        detail.ingredients.map((ing) => _translationService.translate(ing, from: 'en', to: 'es'))
+      );
+
+      final translatedDetail = MealDetailModel(
+        id: detail.id,
+        name: nameEsp,
+        imageUrl: detail.imageUrl,
+        category: categoryEsp,
+        area: areaEsp,
+        instructions: instructionsEsp,
+        ingredients: ingredientsEsp,
+      );
+
+      // Guardar en la caché local para no consumir cuotas ni internet en futuras visitas
+      await prefs.setString('trans_meal_$mealId', json.encode(translatedDetail.toJsonTranslated()));
+
+      return translatedDetail;
     } catch (e) {
       print("Excepción en getMealDetail: $e");
       return null;
